@@ -47,18 +47,25 @@ contract DelegationAwareERC20 is
     /// @dev owner => next valid nonce to submit with permit()
     mapping(address => uint256) public _nonces;
 
-    // @dev DEPRECATED
-    // kept for backwards compatibility with old storage layout
+    ///////// @dev DEPRECATED from AaveToken v1  //////////////////////////
+    //////// kept for backwards compatibility with old storage layout ////
     mapping(address => mapping(uint256 => uint256)) public _snapshots;
-
-    // @dev DEPRECATED
-    // kept for backwards compatibility with old storage layout
     mapping(address => uint256) public _countsSnapshots;
-    // @dev DEPRECATED
-    // kept for backwards compatibility with old storage layout
     address private _aaveGovernance;
+    ///////// @dev END OF DEPRECATED from AaveToken v1  //////////////////////////
 
     bytes32 public DOMAIN_SEPARATOR;
+
+    ///////// @dev DEPRECATED from AaveToken v2  //////////////////////////
+    //////// kept for backwards compatibility with old storage layout ////
+    mapping(address => address) internal _votingDelegates;
+    mapping(address => mapping(uint256 => uint256))
+        internal _propositionPowerSnapshots;
+    mapping(address => uint256) internal _propositionPowerSnapshotsCounts;
+
+    mapping(address => address) internal _propositionPowerDelegates;
+    ///////// @dev END OF DEPRECATED from AaveToken v2  //////////////////////////
+
     bytes public constant EIP712_REVISION = bytes("1");
     bytes32 internal constant EIP712_DOMAIN =
         keccak256(
@@ -69,9 +76,8 @@ contract DelegationAwareERC20 is
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
 
-    uint256 public constant REVISION = 2; // TODO: CHECK, but most probably was 1 before
+    uint256 public constant REVISION = 3; // TODO: CHECK, but most probably was 1 before
 
-    // TODO: adjust storage slots
     mapping(address => address) private _votingDelegateV2;
     mapping(address => address) private _propositionDelegateV2;
 
