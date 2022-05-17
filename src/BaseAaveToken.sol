@@ -34,11 +34,11 @@ import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC2
  */
 contract BaseAaveToken is Context, IERC20, IERC20Metadata {
     struct DelegationAwareBalance {
-        bool delegatingProposition;
-        bool delegatingVoting;
+        uint104 balance;
         uint72 delegatedPropositionBalance;
         uint72 delegatedVotingBalance;
-        uint104 balance;
+        bool delegatingProposition;
+        bool delegatingVoting;
     }
 
     mapping(address => DelegationAwareBalance) internal _balances;

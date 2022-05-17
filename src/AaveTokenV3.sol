@@ -44,7 +44,7 @@ contract AaveTokenV3 is
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
 
-    uint256 public constant REVISION = 3; // TODO: CHECK, but most probably was 1 before
+    uint256 public constant REVISION = 3; // TODO: CHECK, but most probably was 2 before
 
     mapping(address => address) private _votingDelegateeV2;
     mapping(address => address) private _propositionDelegateeV2;
