@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./base/BaseTest.sol";
+import "../../lib/forge-std/src/Test.sol";
 
 import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IBaseAdminUpgradeabilityProxy} from "./utils/IBaseAdminUpgradeabilityProxy.sol";
 
 import {AaveTokenV3} from "../AaveTokenV3.sol";
 
-abstract contract AaveUtils is BaseTest {
+abstract contract AaveUtils is Test {
     address[] public AAVE_HOLDERS;
     IERC20Metadata public constant AAVE_TOKEN =
         IERC20Metadata(0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9);
