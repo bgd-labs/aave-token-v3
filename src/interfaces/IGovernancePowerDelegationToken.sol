@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 interface IGovernancePowerDelegationToken {
-    enum DelegationType {
-        VOTING_POWER,
-        PROPOSITION_POWER
+    enum GovernancePowerType {
+        VOTING,
+        PROPOSITION
     }
 
     /**
@@ -16,7 +16,7 @@ interface IGovernancePowerDelegationToken {
     event DelegateChanged(
         address indexed delegator,
         address indexed delegatee,
-        DelegationType delegationType
+        GovernancePowerType delegationType
     );
 
     /**
@@ -28,7 +28,7 @@ interface IGovernancePowerDelegationToken {
     event DelegatedPowerChanged(
         address indexed user,
         uint256 amount,
-        DelegationType delegationType
+        GovernancePowerType delegationType
     );
 
     /**
@@ -36,8 +36,10 @@ interface IGovernancePowerDelegationToken {
      * @param delegatee the user which delegated power has changed
      * @param delegationType the type of delegation (VOTING_POWER, PROPOSITION_POWER)
      **/
-    function delegateByType(address delegatee, DelegationType delegationType)
-        external;
+    function delegateByType(
+        address delegatee,
+        GovernancePowerType delegationType
+    ) external;
 
     /**
      * @dev delegates all the powers to a specific user
@@ -51,7 +53,7 @@ interface IGovernancePowerDelegationToken {
      **/
     function getDelegateeByType(
         address delegator,
-        DelegationType delegationType
+        GovernancePowerType delegationType
     ) external view returns (address);
 
     /**
@@ -59,7 +61,7 @@ interface IGovernancePowerDelegationToken {
      * power delegated at the time of the last snapshot
      * @param user the user
      **/
-    function getPowerCurrent(address user, DelegationType delegationType)
+    function getPowerCurrent(address user, GovernancePowerType delegationType)
         external
         view
         returns (uint256);
