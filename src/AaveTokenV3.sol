@@ -64,6 +64,32 @@ contract AaveTokenV3 is
         address propositionDelegatee,
         function(uint72, uint72) returns (uint72) operation
     ) internal {
+        uint72 delegationDelta = uint72(
+            (userBalanceBefore / DELEGATED_POWER_DIVIDER) -
+                (userBalanceAfter / DELEGATED_POWER_DIVIDER)
+        );
+        if (votingDelegatee != address(0)) {
+            _balances[votingDelegatee].delegatedVotingBalance = operation(
+                _balances[votingDelegatee].delegatedVotingBalance,
+                delegationDelta
+            );
+        }
+        if (propositionDelegatee != address(0)) {
+            _balances[propositionDelegatee]
+                .delegatedPropositionBalance = operation(
+                _balances[propositionDelegatee].delegatedPropositionBalance,
+                delegationDelta
+            );
+        }
+    }
+
+    function _delegationMoveOverOptimal(
+        uint104 userBalanceBefore,
+        uint104 userBalanceAfter,
+        address votingDelegatee,
+        address propositionDelegatee,
+        function(uint72, uint72) returns (uint72) operation
+    ) internal {
         address delegate1Address = votingDelegatee != address(0)
             ? votingDelegatee
             : propositionDelegatee;
@@ -222,7 +248,8 @@ contract AaveTokenV3 is
                 );
             }
             if (willDelegateAfter != userState.delegatingVoting) {
-                _balances[msg.sender].delegatingVoting = willDelegateAfter;
+                userState.delegatingVoting = willDelegateAfter;
+                _balances[msg.sender] = userState;
             }
             if (votingPowerDelegatee != delegatee) {
                 emit DelegateChanged(
@@ -254,7 +281,8 @@ contract AaveTokenV3 is
             }
 
             if (willDelegateAfter != userState.delegatingProposition) {
-                _balances[msg.sender].delegatingProposition = willDelegateAfter;
+                userState.delegatingProposition = willDelegateAfter;
+                _balances[msg.sender] = userState;
             }
             if (propositionPowerDelegatee != delegatee) {
                 emit DelegateChanged(
@@ -273,8 +301,8 @@ contract AaveTokenV3 is
     function delegate(address delegatee) external override {
         DelegationAwareBalance memory userState = _balances[msg.sender];
         (
-            address votingPowerDelegatee,
-            address propositionPowerDelegatee
+            address currentVotingPowerDelegatee,
+            address currentPropositionPowerDelegatee
         ) = _getDelegaties(msg.sender, userState);
 
         //if user will delegate to self - then cleanup
@@ -284,11 +312,11 @@ contract AaveTokenV3 is
         _delegationMove(
             userState.balance,
             0,
-            votingPowerDelegatee != delegatee
-                ? votingPowerDelegatee
+            currentVotingPowerDelegatee != delegatee
+                ? currentVotingPowerDelegatee
                 : address(0),
-            propositionPowerDelegatee != delegatee
-                ? propositionPowerDelegatee
+            currentPropositionPowerDelegatee != delegatee
+                ? currentPropositionPowerDelegatee
                 : address(0),
             _minus
         );
@@ -299,8 +327,12 @@ contract AaveTokenV3 is
             _delegationMove(
                 userState.balance,
                 0,
-                votingPowerDelegatee != delegatee ? delegatee : address(0),
-                propositionPowerDelegatee != delegatee ? delegatee : address(0),
+                currentVotingPowerDelegatee != delegatee
+                    ? delegatee
+                    : address(0),
+                currentPropositionPowerDelegatee != delegatee
+                    ? delegatee
+                    : address(0),
                 _plus
             );
         }
@@ -313,16 +345,16 @@ contract AaveTokenV3 is
             _balances[msg.sender] = userState;
         }
 
-        if (votingPowerDelegatee != delegatee) {
+        if (currentVotingPowerDelegatee != delegatee) {
             emit DelegateChanged(
-                votingPowerDelegatee,
+                currentVotingPowerDelegatee,
                 delegatee,
                 GovernancePowerType.VOTING
             );
         }
-        if (propositionPowerDelegatee != delegatee) {
+        if (currentPropositionPowerDelegatee != delegatee) {
             emit DelegateChanged(
-                propositionPowerDelegatee,
+                currentPropositionPowerDelegatee,
                 delegatee,
                 GovernancePowerType.PROPOSITION
             );
@@ -348,15 +380,14 @@ contract AaveTokenV3 is
         DelegationAwareBalance memory userState = _balances[user];
         uint256 userOwnPower = (delegationType == GovernancePowerType.VOTING &&
             !userState.delegatingVoting) ||
-            (delegationType == GovernancePowerType.VOTING &&
+            (delegationType == GovernancePowerType.PROPOSITION &&
                 !userState.delegatingProposition)
             ? _balances[user].balance
             : 0;
-        uint256 userDelegatedPower = (
-            delegationType == GovernancePowerType.VOTING
-                ? _balances[user].delegatedVotingBalance
-                : _balances[user].delegatedPropositionBalance
-        ) * DELEGATED_POWER_DIVIDER;
+        uint256 userDelegatedPower = delegationType ==
+            GovernancePowerType.VOTING
+            ? _balances[user].delegatedVotingBalance
+            : _balances[user].delegatedPropositionBalance;
         return userOwnPower + userDelegatedPower * DELEGATED_POWER_DIVIDER;
     }
 
