@@ -6,20 +6,13 @@ import {VersionedInitializable} from "./utils/VersionedInitializable.sol";
 
 import {IGovernancePowerDelegationToken} from "./interfaces/IGovernancePowerDelegationToken.sol";
 import {BaseAaveTokenV2} from "./BaseAaveTokenV2.sol";
+import {MathUtils} from "./utils/MathUtils.sol";
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
-    mapping(address => address) private _votingDelegateeV2;
-    mapping(address => address) private _propositionDelegateeV2;
+    mapping(address => address) internal _votingDelegateeV2;
+    mapping(address => address) internal _propositionDelegateeV2;
 
     uint256 public constant DELEGATED_POWER_DIVIDER = 10**10;
-
-    function _plus(uint72 a, uint72 b) internal pure returns (uint72) {
-        return a + b;
-    }
-
-    function _minus(uint72 a, uint72 b) internal pure returns (uint72) {
-        return a - b;
-    }
 
     function _delegationMoveByType(
         uint104 userBalanceBefore,
@@ -108,7 +101,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
                     fromUserState,
                     fromUserState.balance,
                     fromBalanceAfter,
-                    _minus
+                    MathUtils.minus
                 );
         }
 
@@ -127,7 +120,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
                     toUserState,
                     toUserState.balance,
                     toBalanceBefore,
-                    _plus
+                    MathUtils.plus
                 );
             }
         }
@@ -213,7 +206,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
                 0,
                 currentDelegatee,
                 delegationType,
-                _minus
+                MathUtils.minus
             );
         }
         if (willDelegateAfter) {
@@ -223,7 +216,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
                 0,
                 delegatee,
                 delegationType,
-                _plus
+                MathUtils.plus
             );
         }
 
@@ -235,9 +228,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
             );
         }
 
-        if (currentDelegatee != delegatee) {
-            emit DelegateChanged(user, delegatee, delegationType);
-        }
+        emit DelegateChanged(user, delegatee, delegationType);
     }
 
     function delegateByType(
