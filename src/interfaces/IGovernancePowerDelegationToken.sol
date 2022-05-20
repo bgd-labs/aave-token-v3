@@ -11,7 +11,7 @@ interface IGovernancePowerDelegationToken {
      * @dev emitted when a user delegates to another
      * @param delegator the delegator
      * @param delegatee the delegatee
-     * @param delegationType the type of delegation (VOTING_POWER, PROPOSITION_POWER)
+     * @param delegationType the type of delegation (VOTING, PROPOSITION)
      **/
     event DelegateChanged(
         address indexed delegator,
@@ -23,7 +23,7 @@ interface IGovernancePowerDelegationToken {
      * @dev emitted when an action changes the delegated power of a user
      * @param user the user which delegated power has changed
      * @param amount the amount of delegated power for the user
-     * @param delegationType the type of delegation (VOTING_POWER, PROPOSITION_POWER)
+     * @param delegationType the type of delegation (VOTING, PROPOSITION)
      **/
     event DelegatedPowerChanged(
         address indexed user,
@@ -34,7 +34,7 @@ interface IGovernancePowerDelegationToken {
     /**
      * @dev delegates the specific power to a delegatee
      * @param delegatee the user which delegated power has changed
-     * @param delegationType the type of delegation (VOTING_POWER, PROPOSITION_POWER)
+     * @param delegationType the type of delegation (VOTING, PROPOSITION)
      **/
     function delegateByType(
         address delegatee,
@@ -57,9 +57,9 @@ interface IGovernancePowerDelegationToken {
     ) external view returns (address);
 
     /**
-     * @dev returns the current delegated power of a user. The current power is the
-     * power delegated at the time of the last snapshot
+     * @dev returns the current voting or proposition power of a user.
      * @param user the user
+     * @param delegationType the type of delegation (VOTING, PROPOSITION)
      **/
     function getPowerCurrent(address user, GovernancePowerType delegationType)
         external
