@@ -21,6 +21,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   bytes32 public constant DELEGATE_TYPEHASH =
     keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
 
+  /**
+   * @dev changing one of delegated governance powers of delegatee depending on the delegator balance change
+   * @param userBalanceBefore delegator balance before operation
+   * @param userBalanceAfter delegator balance after operation
+   * @param delegatee the user whom delegated governance power will be changed
+   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
+   * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
+   **/
   function _delegationMoveByType(
     uint104 userBalanceBefore,
     uint104 userBalanceAfter,
@@ -30,6 +38,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   ) internal {
     if (delegatee == address(0)) return;
 
+    // @dev to make delegated balance fit into uin72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
     uint72 delegationDelta = uint72(
       (userBalanceBefore / DELEGATED_POWER_DIVIDER) - (userBalanceAfter / DELEGATED_POWER_DIVIDER)
     );
@@ -40,15 +49,25 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         _balances[delegatee].delegatedVotingBalance,
         delegationDelta
       );
+      //TODO: emit DelegatedPowerChanged maybe;
     } else {
       _balances[delegatee].delegatedPropositionBalance = operation(
         _balances[delegatee].delegatedPropositionBalance,
         delegationDelta
       );
+      //TODO: emit DelegatedPowerChanged maybe;
     }
-    //TODO: emit DelegatedPowerChanged maybe;
   }
 
+  /**
+   * @dev changing one of governance power(Voting or Proposition) of delegatee depending on the delegator balance change
+   * @param user delegator
+   * @param userState the current state of the delegator
+   * @param userBalanceBefore delegator balance before operation
+   * @param userBalanceAfter delegator balance after operation
+   * @param delegatee the user whom delegated governance power will be changed
+   * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
+   **/
   function _delegationMove(
     address user,
     DelegationAwareBalance memory userState,
@@ -72,6 +91,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     );
   }
 
+  /**
+   * @dev performs all state changes related to balance transfer and corresponding delegation changes
+   * @param from token sender
+   * @param to token recipient
+   * @param amount amount of tokens sent
+   **/
   function _transferWithDelegation(
     address from,
     address to,
@@ -113,6 +138,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     }
   }
 
+  /**
+   * @dev extracting and returning delegated governance power(Voting or Proposition) from user state
+   * @param user delegator
+   * @param userState the current state of a user
+   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
+   **/
   function _getDelegatedPowerByType(
     DelegationAwareBalance memory userState,
     GovernancePowerType delegationType
@@ -123,6 +154,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         : userState.delegatedPropositionBalance;
   }
 
+  /**
+   * @dev extracts from user state and returning delegatee by type of governance power(Voting or Proposition)
+   * @param user delegator
+   * @param userState the current state of a user
+   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
+   **/
   function _getDelegateeByType(
     address user,
     DelegationAwareBalance memory userState,
@@ -134,6 +171,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     return userState.delegatingProposition ? _propositionDelegateeV2[user] : address(0);
   }
 
+  /**
+   * @dev changing user's delegatee address by type of governance power(Voting or Proposition)
+   * @param user delegator
+   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
+   * @param _newDelegatee the new delegatee
+   **/
   function _updateDelegateeByType(
     address user,
     GovernancePowerType delegationType,
@@ -147,6 +190,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     }
   }
 
+  /**
+   * @dev updates the specific flag which signaling about existence of delegation of governance power(Voting or Proposition)
+   * @param userState a user state to change
+   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
+   * @param willDelegate next state of delegation
+   **/
   function _updateDelegationFlagByType(
     DelegationAwareBalance memory userState,
     GovernancePowerType delegationType,
@@ -160,6 +209,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     return userState;
   }
 
+  /**
+   * @dev delegates the specific power to a delegatee
+   * @param user delegator
+   * @param _delegatee the user which delegated power has changed
+   * @param delegationType the type of delegation (VOTING, PROPOSITION)
+   **/
   function _delegateByType(
     address user,
     address _delegatee,
