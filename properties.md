@@ -12,7 +12,7 @@ With a new iteration of the Aave governance in the Aave/BGD roadmap down the lin
 
 ## Glossary
 
-$**t_0$ →** the state of the system before a transaction.
+$t_0$ → the state of the system before a transaction.
 
 $t_1$ → the state of the system after a transaction.
 
@@ -30,11 +30,11 @@ $t_1$ → the state of the system after a transaction.
 
 ## General rules
 
-- The total power (of one type) of all users in the system is less or equal than the sum of balances of all AAVE holders (totalSupply of AAVE token): $\sum powerOfAccount_i <= \sum balanceOf(account_i)$
+- The total power (of one type) of all users in the system is less or equal than the sum of balances of all AAVE holders (totalSupply of AAVE token): $$\sum powerOfAccount_i <= \sum balanceOf(account_i)$$
 - If an account is delegating a power to itself or to `address(0)`, that means that account is not delegating that power to anybody:
 
-  $powerOfAccountX = (accountXDelegatingPower \ ? \ 0 : balanceOf(accountX)) +
-  \sum (balanceOf(accountDelegatingPowerToAccountX_i) \ / \ 10^{10} * 10^{10})$
+  $$powerOfAccountX = (accountXDelegatingPower \ ? \ 0 : balanceOf(accountX)) +
+  \sum (balanceOf(accountDelegatingPowerToAccountX_i) \ / \ 10^{10} * 10^{10})$$
 
 - If an account is not receiving delegation of power (one type) from anybody, and that account is not delegating that power to anybody, the power of that account must be equal to its AAVE balance.
 - The power of all other accounts not described in cases should stay constant.
@@ -44,51 +44,65 @@ $t_1$ → the state of the system after a transaction.
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $account1Power_{t1} = account1Power_{t0} - z \\
-  account2Power_{t1} = account2Power_{t0} + z$
+  $$account1Power_{t1} = account1Power_{t0} - z$$
+  
+  $$account2Power_{t1} = account2Power_{t0} + z$$
 
 - After **account1** will delegate his **power** to **account2**
 
-  $account1Power_{t1} = account1Power_{t0} -account1Balance \\
-  account2Power_{t1} = account2Power_{t0} + account1Balance / 10^{10} * 10^{10} \\
-  account1PowerDelegatee_{t1} = account2$
+  $$account1Power_{t1} = account1Power_{t0} - account1Balance$$
+
+  $$account2Power_{t1} = account2Power_{t0} + account1Balance / 10^{10} * 10^{10}$$
+  
+  $$account1PowerDelegatee_{t1} = account2$$
 
 
 ## Account1 is delegating power to delegatee1, account2 is not delegating power to anybody
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $account1Power_{t1} = account1Power_{t0} \\
-  delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10} \\
-  account2Power_{t1} = account2Power_{t0} + z$
+  $$account1Power_{t1} = account1Power_{t0}$$
+  
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
+  
+  $$account2Power_{t1} = account2Power_{t0} + z$$
 
 - After **account1** will stop delegating his **power** to **delegatee1**
 
-  $account1Power_{t1} = account1Power_{t0} + account1Balance \\
-  delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance/10^{10}*10^{10}$
+  $$account1Power_{t1} = account1Power_{t0} + account1Balance$$
+  
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance / 10^{10} * 10^{10}$$$$
 
 - After **account1** will delegate **power** to **delegatee2**
 
-  $account1Power_{t1} = account1Power_{t0} \\
-  delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance/10^{10}*10^{10} \\
-  delegatee2Power_{t1} = delegatee2Power_{t0} + account1Balance/10^{10}*10^{10} \\
-  account1PowerDelegatee_{t1} = delegatee2$
+  $$account1Power_{t1} = account1Power_{t0}$$
+  
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance / 10^{10} * 10^{10}$$
+  
+  $$delegatee2Power_{t1} = delegatee2Power_{t0} + account1Balance / 10^{10} * 10^{10}$$
+  
+  $$account1PowerDelegatee_{t1} = delegatee2$$
 
 
 ## Account1 not delegating power to anybody, **account2** is delegating power to delegatee2
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $account1Power_{t1} = account1Power_{t0}-z \\
-  account2Power_{t1} = account2Power_{t0} \\
-  delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$
+  $$account1Power_{t1} = account1Power_{t0} - z$$
+  
+  $$account2Power_{t1} = account2Power_{t0}$$
+  
+  $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
 
 
 ## Account1 is delegating power to delegatee1, **account2** is delegating power to delegatee2
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $account1Power_{t1} = account1Power_{t0} \\
-  delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10} \\
-  account2Power_{t1} = account2Power_{t0} \\
-  delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$
+  $$account1Power_{t1} = account1Power_{t0}$$
+  
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
+  
+  $$account2Power_{t1} = account2Power_{t0}$$
+  
+  $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
