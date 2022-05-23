@@ -63,10 +63,6 @@ interface IGovernancePowerDelegationToken {
     view
     returns (uint256);
 
-  function DELEGATE_BY_TYPE_TYPEHASH() external view returns (bytes32);
-
-  function DELEGATE_TYPEHASH() external view returns (bytes32);
-
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
    * @param delegator the owner of the funds
