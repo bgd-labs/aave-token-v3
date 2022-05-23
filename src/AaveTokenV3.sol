@@ -14,6 +14,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     uint256 public constant DELEGATED_POWER_DIVIDER = 10**10;
 
+    bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH = keccak256(
+        "DelegateByType(address owner,address delegatee,GovernancePowerType delegationType,uint256 nonce,uint256 deadline)"
+    );
+    bytes32 public constant DELEGATE_TYPEHASH = keccak256(
+        "Delegate(address owner,address delegatee,uint256 nonce,uint256 deadline)"
+    );
+
     function _delegationMoveByType(
         uint104 userBalanceBefore,
         uint104 userBalanceAfter,
@@ -232,10 +239,10 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     }
 
     function delegateByType(
-        address _delegatee,
+        address delegatee,
         GovernancePowerType delegationType
     ) external virtual override {
-        _delegateByType(msg.sender, _delegatee, delegationType);
+        _delegateByType(msg.sender, delegatee, delegationType);
     }
 
     /**
@@ -278,4 +285,80 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         ) * DELEGATED_POWER_DIVIDER;
         return userOwnPower + userDelegatedPower;
     }
+
+    function metaDelegateByType(
+        address owner,
+        address delegatee,
+        GovernancePowerType delegationType,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
+        require(owner != address(0), "INVALID_OWNER");
+        //solium-disable-next-line
+        require(block.timestamp <= deadline, "INVALID_EXPIRATION");
+        uint256 currentValidNonce = _nonces[owner];
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        DELEGATE_BY_TYPE_TYPEHASH,
+                        owner,
+                        delegate,
+                        delegationType,
+                        currentValidNonce,
+                        deadline
+                    )
+                )
+            )
+        );
+
+        require(owner == ecrecover(digest, v, r, s), "INVALID_SIGNATURE");
+    unchecked {
+        // does not make sense to check because it's not realistic to reach uint256.max in nonce
+        _nonces[owner] = currentValidNonce + 1;
+    }
+        _delegateByType(owner, delegatee, delegationType);
+    }
+
+    function metaDelegate(
+        address owner,
+        address delegatee,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
+        require(owner != address(0), "INVALID_OWNER");
+        //solium-disable-next-line
+        require(block.timestamp <= deadline, "INVALID_EXPIRATION");
+        uint256 currentValidNonce = _nonces[owner];
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        DELEGATE_TYPEHASH,
+                        owner,
+                        delegate,
+                        currentValidNonce,
+                        deadline
+                    )
+                )
+            )
+        );
+
+        require(owner == ecrecover(digest, v, r, s), "INVALID_SIGNATURE");
+    unchecked {
+        // does not make sense to check because it's not realistic to reach uint256.max in nonce
+        _nonces[owner] = currentValidNonce + 1;
+    }
+        _delegateByType(owner, delegatee, GovernancePowerType.VOTING);
+        _delegateByType(owner, delegatee, GovernancePowerType.PROPOSITION);
+    }
+
 }
