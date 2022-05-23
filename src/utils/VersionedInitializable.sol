@@ -16,30 +16,27 @@ pragma solidity ^0.8.0;
  * @author Aave, inspired by the OpenZeppelin Initializable contract
  */
 abstract contract VersionedInitializable {
-    /**
-     * @dev Indicates that the contract has been initialized.
-     */
-    uint256 internal lastInitializedRevision = 0;
+  /**
+   * @dev Indicates that the contract has been initialized.
+   */
+  uint256 internal lastInitializedRevision = 0;
 
-    /**
-     * @dev Modifier to use in the initializer function of a contract.
-     */
-    modifier initializer() {
-        uint256 revision = getRevision();
-        require(
-            revision > lastInitializedRevision,
-            "Contract instance has already been initialized"
-        );
+  /**
+   * @dev Modifier to use in the initializer function of a contract.
+   */
+  modifier initializer() {
+    uint256 revision = getRevision();
+    require(revision > lastInitializedRevision, 'Contract instance has already been initialized');
 
-        lastInitializedRevision = revision;
+    lastInitializedRevision = revision;
 
-        _;
-    }
+    _;
+  }
 
-    /// @dev returns the revision number of the contract.
-    /// Needs to be defined in the inherited class as a constant.
-    function getRevision() internal pure virtual returns (uint256);
+  /// @dev returns the revision number of the contract.
+  /// Needs to be defined in the inherited class as a constant.
+  function getRevision() internal pure virtual returns (uint256);
 
-    // Reserved storage space to allow for layout changes in the future.
-    uint256[50] private ______gap;
+  // Reserved storage space to allow for layout changes in the future.
+  uint256[50] private ______gap;
 }

@@ -2,11 +2,14 @@
 pragma solidity ^0.8.0;
 
 interface IGovernancePowerDelegationToken {
-  enum GovernancePowerType {VOTING, PROPOSITION}
+  enum GovernancePowerType {
+    VOTING,
+    PROPOSITION
+  }
 
   /**
    * @dev emitted when a user delegates to another
-   * @param delegator the delegator
+   * @param delegator the user which delegated governance power
    * @param delegatee the delegatee
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
@@ -66,8 +69,8 @@ interface IGovernancePowerDelegationToken {
 
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
-   * @param owner the owner of the funds
-   * @param delegatee the user to who ownwer delegates his governance power
+   * @param delegator the owner of the funds
+   * @param delegatee the user to who owner delegates his governance power
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    * @param deadline the deadline timestamp, type(uint256).max for no deadline
    * @param v signature param
@@ -75,7 +78,7 @@ interface IGovernancePowerDelegationToken {
    * @param r signature param
    */
   function metaDelegateByType(
-    address owner,
+    address delegator,
     address delegatee,
     GovernancePowerType delegationType,
     uint256 deadline,
@@ -86,15 +89,15 @@ interface IGovernancePowerDelegationToken {
 
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
-   * @param owner the owner of the funds
-   * @param delegatee the user to who ownwer delegates his voting and proposition governance power
+   * @param delegator the owner of the funds
+   * @param delegatee the user to who delegator delegates his voting and proposition governance power
    * @param deadline the deadline timestamp, type(uint256).max for no deadline
    * @param v signature param
    * @param s signature param
    * @param r signature param
    */
   function metaDelegate(
-    address owner,
+    address delegator,
     address delegatee,
     uint256 deadline,
     uint8 v,
