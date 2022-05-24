@@ -60,12 +60,11 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev changing one of governance power(Voting or Proposition) of delegatee depending on the delegator balance change
+   * @dev changing one of governance power(Voting and Proposition) of delegatees depending on the delegator balance change
    * @param user delegator
    * @param userState the current state of the delegator
-   * @param userBalanceBefore delegator balance before operation
-   * @param userBalanceAfter delegator balance after operation
-   * @param delegatee the user whom delegated governance power will be changed
+   * @param balanceBefore delegator balance before operation
+   * @param balanceAfter delegator balance after operation
    * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
    **/
   function _delegationMove(
@@ -140,7 +139,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
   /**
    * @dev extracting and returning delegated governance power(Voting or Proposition) from user state
-   * @param user delegator
    * @param userState the current state of a user
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
