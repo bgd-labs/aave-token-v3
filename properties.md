@@ -45,7 +45,7 @@ $t_1$ → the state of the system after a transaction.
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
   $$account1Power_{t1} = account1Power_{t0} - z$$
-  
+
   $$account2Power_{t1} = account2Power_{t0} + z$$
 
 - After **account1** will delegate his **power** to **account2**
@@ -53,7 +53,7 @@ $t_1$ → the state of the system after a transaction.
   $$account1Power_{t1} = account1Power_{t0} - account1Balance$$
 
   $$account2Power_{t1} = account2Power_{t0} + account1Balance / 10^{10} * 10^{10}$$
-  
+
   $$account1PowerDelegatee_{t1} = account2$$
 
 
@@ -61,26 +61,26 @@ $t_1$ → the state of the system after a transaction.
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $$account1Power_{t1} = account1Power_{t0}$$
-  
+  $$account1Power_{t1} = account1Power_{t0} = 0$$
+
   $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
-  
+
   $$account2Power_{t1} = account2Power_{t0} + z$$
 
 - After **account1** will stop delegating his **power** to **delegatee1**
 
   $$account1Power_{t1} = account1Power_{t0} + account1Balance$$
-  
+
   $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance / 10^{10} * 10^{10}$$$$
 
 - After **account1** will delegate **power** to **delegatee2**
 
-  $$account1Power_{t1} = account1Power_{t0}$$
-  
+  $$account1Power_{t1} = account1Power_{t0} = 0$$
+
   $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance / 10^{10} * 10^{10}$$
-  
+
   $$delegatee2Power_{t1} = delegatee2Power_{t0} + account1Balance / 10^{10} * 10^{10}$$
-  
+
   $$account1PowerDelegatee_{t1} = delegatee2$$
 
 
@@ -89,9 +89,9 @@ $t_1$ → the state of the system after a transaction.
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
   $$account1Power_{t1} = account1Power_{t0} - z$$
-  
-  $$account2Power_{t1} = account2Power_{t0}$$
-  
+
+  $$account2Power_{t1} = account2Power_{t0} = 0$$
+
   $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
 
 
@@ -99,10 +99,10 @@ $t_1$ → the state of the system after a transaction.
 
 - On transfer of $\forall z >= 0$ of AAVE tokens from **account1** to **account2**
 
-  $$account1Power_{t1} = account1Power_{t0}$$
-  
+  $$account1Power_{t1} = account1Power_{t0} = 0$$
+
   $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
-  
-  $$account2Power_{t1} = account2Power_{t0}$$
-  
+
+  $$account2Power_{t1} = account2Power_{t0} = 0$$
+
   $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
