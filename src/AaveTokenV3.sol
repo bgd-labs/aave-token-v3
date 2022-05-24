@@ -115,7 +115,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         fromBalanceAfter = fromUserState.balance - uint104(amount);
       }
       _balances[from].balance = fromBalanceAfter;
-      if (fromUserState.delegatingProposition || fromUserState.delegatingVoting)
+      if (fromUserState.delegationState != DelegationState.NO_DELEGATION)
         _delegationMove(
           from,
           fromUserState,
@@ -131,7 +131,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       toUserState.balance = toBalanceBefore + uint104(amount); // TODO: check overflow?
       _balances[to] = toUserState;
 
-      if (toUserState.delegatingVoting || toUserState.delegatingProposition) {
+      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
         _delegationMove(to, toUserState, toUserState.balance, toBalanceBefore, MathUtils.plus);
       }
     }
@@ -164,9 +164,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal view returns (address) {
     if (delegationType == GovernancePowerType.VOTING) {
-      return userState.delegatingVoting ? _votingDelegateeV2[user] : address(0);
+      return (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
+      ? _votingDelegateeV2[user]
+      : address(0);
     }
-    return userState.delegatingProposition ? _propositionDelegateeV2[user] : address(0);
+    return userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
+    ? _propositionDelegateeV2[user]
+    : address(0);
   }
 
   /**
@@ -199,10 +203,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType,
     bool willDelegate
   ) internal pure returns (DelegationAwareBalance memory) {
-    if (delegationType == GovernancePowerType.VOTING) {
-      userState.delegatingVoting = willDelegate;
+    if (willDelegate) {
+      // because GovernancePowerType starting from 0, we should add 1 first, then we apply bitwise OR
+      userState.delegationState = DelegationState(uint8(userState.delegationState) | (uint8(delegationType) + 1));
     } else {
-      userState.delegatingProposition = willDelegate;
+      // first bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
+      // then bitwise AND, which means it will keep only another delegation type if it exists
+      userState.delegationState = DelegationState(uint8(userState.delegationState) & ((uint8(delegationType) + 1) ^ 3));
     }
     return userState;
   }
@@ -282,9 +289,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     returns (uint256)
   {
     DelegationAwareBalance memory userState = _balances[user];
-    uint256 userOwnPower = (delegationType == GovernancePowerType.VOTING &&
-      !userState.delegatingVoting) ||
-      (delegationType == GovernancePowerType.PROPOSITION && !userState.delegatingProposition)
+    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
       ? _balances[user].balance
       : 0;
     uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *

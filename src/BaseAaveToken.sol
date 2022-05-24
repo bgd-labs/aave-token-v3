@@ -33,12 +33,18 @@ import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC2
  * allowances. See {IERC20-approve}.
  */
 abstract contract BaseAaveToken is Context, IERC20Metadata {
+  enum DelegationState {
+    NO_DELEGATION,
+    VOTING_DELEGATED,
+    PROPOSITION_DELEGATED,
+    FULL_POWER_DELEGATED
+  }
+
   struct DelegationAwareBalance {
     uint104 balance;
     uint72 delegatedPropositionBalance;
     uint72 delegatedVotingBalance;
-    bool delegatingProposition;
-    bool delegatingVoting;
+    DelegationState delegationState;
   }
 
   mapping(address => DelegationAwareBalance) internal _balances;
