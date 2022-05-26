@@ -225,7 +225,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     address _delegatee,
     GovernancePowerType delegationType
   ) internal {
-    //we consider to 0x0 as delegation to self
+    // Here we unify the property that delegating power to address(0) == delegating power to yourself == no delegation
+    // So from now on, not being delegating is (exclusively) that delegatee == address(0)
     address delegatee = _delegatee == user ? address(0) : _delegatee;
 
     // We read the whole struct before validating delegatee, because in the optimistic case
