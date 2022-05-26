@@ -23,15 +23,15 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
   /**
    * @dev changing one of delegated governance powers of delegatee depending on the delegator balance change
-   * @param userBalanceBefore delegator balance before operation
-   * @param userBalanceAfter delegator balance after operation
+   * @param delegatorBalanceBefore delegator balance before operation
+   * @param delegatorBalanceAfter delegator balance after operation
    * @param delegatee the user whom delegated governance power will be changed
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
    **/
   function _delegationMoveByType(
-    uint104 userBalanceBefore,
-    uint104 userBalanceAfter,
+    uint104 delegatorBalanceBefore,
+    uint104 delegatorBalanceAfter,
     address delegatee,
     GovernancePowerType delegationType,
     function(uint72, uint72) returns (uint72) operation
@@ -40,7 +40,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     // @dev to make delegated balance fit into uin72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
     uint72 delegationDelta = uint72(
-      (userBalanceBefore / DELEGATED_POWER_DIVIDER) - (userBalanceAfter / DELEGATED_POWER_DIVIDER)
+      (delegatorBalanceBefore / DELEGATED_POWER_DIVIDER) - (delegatorBalanceAfter / DELEGATED_POWER_DIVIDER)
     );
     if (delegationDelta == 0) return;
 
@@ -61,15 +61,15 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
   /**
    * @dev changing one of governance power(Voting and Proposition) of delegatees depending on the delegator balance change
-   * @param user delegator
-   * @param userState the current state of the delegator
+   * @param delegator delegator
+   * @param delegatorState the current state of the delegator
    * @param balanceBefore delegator balance before operation
    * @param balanceAfter delegator balance after operation
    * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
    **/
   function _delegationMove(
-    address user,
-    DelegationAwareBalance memory userState,
+    address delegator,
+    DelegationAwareBalance memory delegatorState,
     uint104 balanceBefore,
     uint104 balanceAfter,
     function(uint72, uint72) returns (uint72) operation
@@ -77,14 +77,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     _delegationMoveByType(
       balanceBefore,
       balanceAfter,
-      _getDelegateeByType(user, userState, GovernancePowerType.VOTING),
+      _getDelegateeByType(delegator, delegatorState, GovernancePowerType.VOTING),
       GovernancePowerType.VOTING,
       operation
     );
     _delegationMoveByType(
       balanceBefore,
       balanceAfter,
-      _getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION),
+      _getDelegateeByType(delegator, delegatorState, GovernancePowerType.PROPOSITION),
       GovernancePowerType.PROPOSITION,
       operation
     );
