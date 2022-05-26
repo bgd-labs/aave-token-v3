@@ -228,6 +228,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     //we consider to 0x0 as delegation to self
     address delegatee = _delegatee == user ? address(0) : _delegatee;
 
+    // We read the whole struct before validating delegatee, because in the optimistic case
+    // (_delegatee != currentDelegatee) we will reuse userState in the rest of the function
     DelegationAwareBalance memory userState = _balances[user];
     address currentDelegatee = _getDelegateeByType(user, userState, delegationType);
     if (delegatee == currentDelegatee) return;
