@@ -153,12 +153,16 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
-        _balances[delegatee].delegatedVotingBalance - delegatorBalanceBefore72 + delegatorBalanceAfter72;
+        _balances[delegatee].delegatedVotingBalance -
+        delegatorBalanceBefore72 +
+        delegatorBalanceAfter72;
 
       //TODO: emit DelegatedPowerChanged maybe;
     } else {
       _balances[delegatee].delegatedPropositionBalance =
-        _balances[delegatee].delegatedPropositionBalance - delegatorBalanceBefore72 + delegatorBalanceAfter72;
+        _balances[delegatee].delegatedPropositionBalance -
+        delegatorBalanceBefore72 +
+        delegatorBalanceAfter72;
       //TODO: emit DelegatedPowerChanged maybe;
     }
   }
@@ -211,10 +215,10 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       require(fromUserState.balance >= amount, 'ERC20: transfer amount exceeds balance');
 
       uint104 fromBalanceAfter;
-    unchecked {
-      //TODO: in general we don't need to check cast to uint104 because we know that it's less then balance from require
-      fromBalanceAfter = fromUserState.balance - uint104(amount);
-    }
+      unchecked {
+        //TODO: in general we don't need to check cast to uint104 because we know that it's less then balance from require
+        fromBalanceAfter = fromUserState.balance - uint104(amount);
+      }
       _balances[from].balance = fromBalanceAfter;
       if (fromUserState.delegationState != DelegationState.NO_DELEGATION)
         _delegationMove(
@@ -248,9 +252,9 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal pure returns (uint72) {
     return
-    delegationType == GovernancePowerType.VOTING
-    ? userState.delegatedVotingBalance
-    : userState.delegatedPropositionBalance;
+      delegationType == GovernancePowerType.VOTING
+        ? userState.delegatedVotingBalance
+        : userState.delegatedPropositionBalance;
   }
 
   /**
@@ -265,13 +269,15 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal view returns (address) {
     if (delegationType == GovernancePowerType.VOTING) {
-      return (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
-      ? _votingDelegateeV2[delegator]
-      : address(0);
+      return
+        (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
+          ? _votingDelegateeV2[delegator]
+          : address(0);
     }
-    return userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
-    ? _propositionDelegateeV2[delegator]
-    : address(0);
+    return
+      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
+        ? _propositionDelegateeV2[delegator]
+        : address(0);
   }
 
   /**
@@ -306,11 +312,15 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   ) internal pure returns (DelegationAwareBalance memory) {
     if (willDelegate) {
       // because GovernancePowerType starting from 0, we should add 1 first, then we apply bitwise OR
-      userState.delegationState = DelegationState(uint8(userState.delegationState) | (uint8(delegationType) + 1));
+      userState.delegationState = DelegationState(
+        uint8(userState.delegationState) | (uint8(delegationType) + 1)
+      );
     } else {
       // first bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
       // then bitwise AND, which means it will keep only another delegation type if it exists
-      userState.delegationState = DelegationState(uint8(userState.delegationState) & ((uint8(delegationType) + 1) ^ 3));
+      userState.delegationState = DelegationState(
+        uint8(userState.delegationState) & ((uint8(delegationType) + 1) ^ 3)
+      );
     }
     return userState;
   }
@@ -351,10 +361,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     _updateDelegateeByType(delegator, delegationType, delegatee);
 
     if (willDelegateAfter != delegatingNow) {
-      _balances[delegator] = _updateDelegationFlagByType(delegatorState, delegationType, willDelegateAfter);
+      _balances[delegator] = _updateDelegationFlagByType(
+        delegatorState,
+        delegationType,
+        willDelegateAfter
+      );
     }
 
     emit DelegateChanged(delegator, delegatee, delegationType);
   }
-
 }
