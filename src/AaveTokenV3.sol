@@ -136,9 +136,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
    * @param delegatorBalanceAfter delegator balance after operation
    * @param delegatee the user whom delegated governance power will be changed
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
-   * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
    **/
-  function _delegationMoveByType(
+  function _governancePowerTransferByType(
     uint104 delegatorBalanceBefore,
     uint104 delegatorBalanceAfter,
     address delegatee,
@@ -173,21 +172,20 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
    * @param delegatorState the current state of the delegator
    * @param balanceBefore delegator balance before operation
    * @param balanceAfter delegator balance after operation
-   * @param operation math operation which will be applied depends on increasing or decreasing of the delegator balance (plus, minus)
    **/
-  function _delegationMove(
+  function _governancePowerTransfer(
     address delegator,
     DelegationAwareBalance memory delegatorState,
     uint104 balanceBefore,
     uint104 balanceAfter
   ) internal {
-    _delegationMoveByType(
+    _governancePowerTransferByType(
       balanceBefore,
       balanceAfter,
       _getDelegateeByType(delegator, delegatorState, GovernancePowerType.VOTING),
       GovernancePowerType.VOTING
     );
-    _delegationMoveByType(
+    _governancePowerTransferByType(
       balanceBefore,
       balanceAfter,
       _getDelegateeByType(delegator, delegatorState, GovernancePowerType.PROPOSITION),
@@ -221,13 +219,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       }
       _balances[from].balance = fromBalanceAfter;
       if (fromUserState.delegationState != DelegationState.NO_DELEGATION)
-        _delegationMove(
-          from,
-          fromUserState,
-          fromUserState.balance,
-          fromBalanceAfter,
-          MathUtils.minus
-        );
+        _governancePowerTransfer(from, fromUserState, fromUserState.balance, fromBalanceAfter);
     }
 
     if (to != address(0)) {
@@ -237,7 +229,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       _balances[to] = toUserState;
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
-        _delegationMove(to, toUserState, toUserState.balance, toBalanceBefore, MathUtils.plus);
+        _governancePowerTransfer(to, toUserState, toUserState.balance, toBalanceBefore);
       }
     }
   }
@@ -319,7 +311,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       // first bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
       // then bitwise AND, which means it will keep only another delegation type if it exists
       userState.delegationState = DelegationState(
-        uint8(userState.delegationState) & ((uint8(delegationType) + 1) ^ 3)
+        uint8(userState.delegationState) &
+          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED))
       );
     }
     return userState;
@@ -328,7 +321,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   /**
    * @dev This is the equivalent of an ERC20 transfer(), but for a power type: an atomic transfer of a balance (power).
    * When needed, it decreases the power of the `delegator` and when needed, it increases the power of the `delegatee`
-   * @param user delegator
+   * @param delegator delegator
    * @param _delegatee the user which delegated power has changed
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
@@ -343,7 +336,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     // We read the whole struct before validating delegatee, because in the optimistic case
     // (_delegatee != currentDelegatee) we will reuse userState in the rest of the function
-    DelegationAwareBalance memory delegatorState = _balances[user];
+    DelegationAwareBalance memory delegatorState = _balances[delegator];
     address currentDelegatee = _getDelegateeByType(delegator, delegatorState, delegationType);
     if (delegatee == currentDelegatee) return;
 
@@ -351,11 +344,11 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     bool willDelegateAfter = delegatee != address(0);
 
     if (delegatingNow) {
-      _delegationMoveByType(delegatorState.balance, 0, currentDelegatee, delegationType);
+      _governancePowerTransferByType(delegatorState.balance, 0, currentDelegatee, delegationType);
     }
 
     if (willDelegateAfter) {
-      _delegationMoveByType(0, delegatorState.balance, delegatee, delegationType);
+      _governancePowerTransferByType(0, delegatorState.balance, delegatee, delegationType);
     }
 
     _updateDelegateeByType(delegator, delegationType, delegatee);
