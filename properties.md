@@ -30,7 +30,6 @@ $t_1$ → the state of the system after a transaction.
 
 ## General rules
 
-- The total power (of one type) of all users in the system is less or equal than the sum of balances of all AAVE holders (totalSupply of AAVE token): $$\sum powerOfAccount_i <= \sum balanceOf(account_i)$$
 - If an account is delegating a power to itself or to `address(0)`, that means that account is not delegating that power to anybody:
 
   $$powerOfAccountX = (accountXDelegatingPower \ ? \ 0 : balanceOf(accountX)) +
