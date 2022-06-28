@@ -6,6 +6,8 @@ import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDele
 import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
+
+
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 

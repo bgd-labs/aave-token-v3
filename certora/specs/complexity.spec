@@ -1,4 +1,4 @@
-import "erc20.spec"
+// import "erc20.spec"
 
 rule sanity(method f)
 {
@@ -93,11 +93,11 @@ description "$f can be called by more than one user without reverting"
 	assert  !(firstSucceeded && secondSucceeded), "${f.selector} can be called by both ${e1.msg.sender} and ${e2.msg.sender}, so it is not privileged";
 }
 
-rule whoChangedBalanceOf(method f, address u) {
-    env eB;
-    env eF;
-    calldataarg args;
-    uint256 before = balanceOf(eB, u);
-    f(eF,args);
-    assert balanceOf(eB, u) == before, "balanceOf changed";
-}
+// rule whoChangedBalanceOf(method f, address u) {
+//     env eB;
+//     env eF;
+//     calldataarg args;
+//     uint256 before = balanceOf(eB, u);
+//     f(eF,args);
+//     assert balanceOf(eB, u) == before, "balanceOf changed";
+// }
