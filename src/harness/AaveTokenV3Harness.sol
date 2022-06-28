@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import {VersionedInitializable} from './utils/VersionedInitializable.sol';
+import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
 
-import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
-import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
-import {MathUtils} from './utils/MathUtils.sol';
+import {IGovernancePowerDelegationToken} from '../interfaces/IGovernancePowerDelegationToken.sol';
+import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
+import {MathUtils} from '../utils/MathUtils.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
@@ -22,6 +22,62 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     );
   bytes32 public constant DELEGATE_TYPEHASH =
     keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
+
+  /** 
+    Harness section - replace struct reads and writes with function calls
+   */
+
+//   struct DelegationAwareBalance {
+//     uint104 balance;
+//     uint72 delegatedPropositionBalance;
+//     uint72 delegatedVotingBalance;
+//     bool delegatingProposition;
+//     bool delegatingVoting;
+//   }
+
+   function _setBalance(address user, uint104 balance) internal {
+    _balances[user].balance = balance;
+   }
+
+   function getBalance(address user) view public returns (uint104) {
+    return _balances[user].balance;
+   }
+
+   function _setDelegatedPropositionBalance(address user, uint72 dpb) internal {
+    _balances[user].delegatedPropositionBalance = dpb;
+   }
+
+   function getDelegatedPropositionBalance(address user) view public returns (uint72) {
+    return _balances[user].delegatedPropositionBalance;
+   }
+
+   function _setDelegatedVotingBalance(address user, uint72 dvb) internal {
+    _balances[user].delegatedVotingBalance = dvb;
+   }
+
+   function getDelegatedVotingBalance(address user) view public returns (uint72) {
+    return _balances[user].delegatedVotingBalance;
+   }
+
+   function _setDelegatingProposition(address user, bool _delegating) internal {
+    _balances[user].delegatingProposition = _delegating;
+   }
+
+   function getDelegatingProposition(address user) view public returns (bool) {
+    return _balances[user].delegatingProposition;
+   }
+
+   function _setDelegatingVoting(address user, bool _delegating) internal {
+    _balances[user].delegatingVoting = _delegating;
+   }
+
+   function getDelegatingVoting(address user) view public returns (bool) {
+    return _balances[user].delegatingVoting;
+   }
+
+   /**
+     End of harness section
+    */
 
   /**
    * @dev changing one of delegated governance powers of delegatee depending on the delegator balance change
