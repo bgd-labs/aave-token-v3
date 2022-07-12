@@ -8,22 +8,11 @@ methods{
     totalSupply() returns (uint256) envfree
     balanceOf(address addr) returns (uint256) envfree
     transfer(address to, uint256 amount) returns (bool)
-    transferFrom(address from, address to) returns (bool)
+    transferFrom(address from, address to, uint256 amount) returns (bool)
 
-    _votingDelegateeV2(address) returns (address)
-    _propositionDelegateeV2(address) returns (address)
     DELEGATED_POWER_DIVIDER() returns (uint256)
     DELEGATE_BY_TYPE_TYPEHASH() returns (bytes32)
     DELEGATE_TYPEHASH() returns (bytes32)
-    // _delegationMoveByType(uint104, uint104, address, GovernancePowerType delegationType, function(uint72, uint72) returns (uint72) operation)
-    // _delegationMove(address, DelegationAwareBalance userState, uint104, uint104, function(uint72, uint72) returns (uint72) operation)
-    _transferWithDelegation(address, address, uint256)
-    // _getDelegatedPowerByType(DelegationAwareBalance userState, GovernancePowerType delegationType) returns (uint72)
-    // _getDelegateeByType(address, DelegationAwareBalance userState, GovernancePowerType delegationType) returns (address)
-    // _updateDelegateeByType(address, GovernancePowerType delegationType, address)
-    // _updateDelegationFlagByType(DelegationAwareBalance userState, GovernancePowerType delegationType, bool) returns (DelegationAwareBalance)
-    // _delegateByType(address, address, GovernancePowerType delegationType)
-    // delegateByType(address, GovernancePowerType delegationType)
     delegate(address delegatee)
     // getDelegateeByType(address delegator, GovernancePowerType delegationType) returns (address)
     // getPowerCurrent(address, GovernancePowerType delegationType) returns (uint256)
@@ -40,6 +29,8 @@ methods{
     getDelegatedVotingBalance(address user) returns (uint72) envfree
     getDelegatingProposition(address user) returns (bool) envfree
     getDelegatingVoting(address user) returns (bool) envfree
+    getVotingDelegate(address user) returns (address) envfree
+    getPropositionDelegate(address user) returns (address) envfree
 }
 
 definition VOTING_POWER() returns uint8 = 0;
@@ -54,11 +45,11 @@ definition PROPOSITION_POWER() returns uint8 = 1;
 
 // accumulator for a  sum of proposition voting power
 ghost mathint sumDelegatedProposition {
-    init_state axiom forall uint256 t. sumDelegatedProposition == 0;
+    init_state axiom sumDelegatedProposition == 0;
 }
 
 ghost mathint sumBalances {
-    init_state axiom forall uint256 t. sumBalances == 0;
+    init_state axiom sumBalances == 0;
 }
 
 /*
@@ -75,7 +66,7 @@ hook Sstore _balances[KEY address user].balance uint104 balance
         sumBalances = sumBalances + to_mathint(balance) - to_mathint(old_balance);
     }
 
-invariant sumDelegatedPropositionCorrectness() sumDelegatedProposition <= totalSupply() { 
+invariant sumDelegatedPropositionCorrectness() sumDelegatedProposition <= sumBalances { 
   // fails
   preserved transfer(address to, uint256 amount) with (env e)
          {
@@ -86,6 +77,15 @@ invariant sumDelegatedPropositionCorrectness() sumDelegatedProposition <= totalS
         require(balanceOf(from) + balanceOf(to)) < totalSupply();
         }
 }
+
+invariant nonDelegatingBalance(address user)
+    !getDelegatingProposition(user) => balanceOf(user) == getDelegatedPropositionBalance(user) {
+        preserved transfer(address to, uint256 amount) with (env e)
+            {
+                require(getVotingDelegate(to) != user);
+            }
+    }
+
 
 rule totalSupplyCorrectness(method f) {
     env e;
@@ -122,4 +122,87 @@ rule transferUnitTest() {
     uint256 powerToAfter = getPowerCurrent(to, VOTING_POWER());
 
     assert powerToAfter == powerToBefore + powerSenderBefore;
+}
+
+// for non delegating address
+rule votingPowerEqualsBalance(address user) {
+    uint256 userBalance = balanceOf(user);
+    require(!getDelegatingProposition(user));
+    require(!getDelegatingVoting(user));
+    assert userBalance == getDelegatedPropositionBalance(user) && userBalance == getDelegatedVotingBalance(user);
+}
+
+// Verify that the voting delegation balances update correctly
+// probably a scaling issue
+rule tokenTransferCorrectnessVoting(address from, address to, uint256 amount) {
+    env e;
+
+    require(from != 0 && to != 0);
+
+    uint256 balanceFromBefore = balanceOf(from);
+    uint256 balanceToBefore = balanceOf(to);
+
+    address fromDelegate = getVotingDelegate(from);
+    address toDelegate = getVotingDelegate(to);
+
+    uint256 powerFromDelegateBefore = getPowerCurrent(fromDelegate, VOTING_POWER());
+    uint256 powerToDelegateBefore = getPowerCurrent(toDelegate, VOTING_POWER());
+
+    bool isDelegatingVotingFromBefore = getDelegatingVoting(from);
+    bool isDelegatingVotingToBefore = getDelegatingVoting(to);
+
+    // non reverting path
+    transferFrom(e, from, to, amount);
+
+    uint256 balanceFromAfter = balanceOf(from);
+    uint256 balanceToAfter = balanceOf(to);
+
+    address fromDelegateAfter = getVotingDelegate(from);
+    address toDelegateAfter = getVotingDelegate(to);
+
+    uint256 powerFromDelegateAfter = getPowerCurrent(fromDelegateAfter, VOTING_POWER());
+    uint256 powerToDelegateAfter = getPowerCurrent(toDelegateAfter, VOTING_POWER());
+
+    bool isDelegatingVotingFromAfter = getDelegatingVoting(from);
+    bool isDelegatingVotingToAfter = getDelegatingVoting(to);
+
+    assert fromDelegateAfter == toDelegateAfter => powerFromDelegateBefore == powerFromDelegateAfter;
+
+    assert isDelegatingVotingFromBefore => 
+        powerFromDelegateAfter - powerFromDelegateBefore == amount ||
+        (fromDelegateAfter == toDelegateAfter && powerFromDelegateBefore == powerFromDelegateAfter);
+    assert isDelegatingVotingToBefore => 
+        powerToDelegateAfter - powerToDelegateBefore == amount  ||
+        (fromDelegateAfter == toDelegateAfter && powerToDelegateBefore == powerToDelegateAfter);
+
+}
+
+// If an account is not receiving delegation of power (one type) from anybody, 
+// and that account is not delegating that power to anybody, the power of that account
+// must be equal to its AAVE balance.
+
+rule powerWhenNotDelegating(address account) {
+    uint256 balance = balanceOf(account);
+    bool isDelegatingVoting = getDelegatingVoting(account);
+    bool isDelegatingProposition = getDelegatingProposition(account);
+    uint72 dvb = getDelegatedVotingBalance(account);
+    uint72 dpb = getDelegatedPropositionBalance(account);
+
+    uint256 votingPower = getPowerCurrent(account, VOTING_POWER());
+    uint256 propositionPower = getPowerCurrent(account, PROPOSITION_POWER());
+
+    assert dvb == 0 && !isDelegatingVoting => votingPower == balance;
+    assert dpb == 0 && !isDelegatingProposition => propositionPower == balance;
+}
+
+// wrong, user may delegate to himself/0 and the flag will be set true
+rule selfDelegationCorrectness(address account) {
+    bool isDelegatingVoting = getDelegatingVoting(account);
+    bool isDelegatingProposition = getDelegatingProposition(account);
+    address votingDelegate = getVotingDelegate(account);
+    address propositionDelegate = getPropositionDelegate(account);
+
+    assert votingDelegate == 0 || votingDelegate == account => isDelegatingVoting == false;
+    assert propositionDelegate == 0 || propositionDelegate == account => isDelegatingProposition == false;
+
 }

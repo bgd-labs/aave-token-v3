@@ -31,3 +31,13 @@
 
 ## properties for Aave Token v3 spec
 
+-- on token transfer, the delegation balances change correctly for all cases:
+from delegating, to delegating, both delegating, none delegating
+
+-- delegating to 0 == delegating to self. which means the flags are set to false
+
+-- the flags are updated properly after delegation
+
+-- the delegated power is stored divided by 10^10. make sure this doesn't kill precision.
+
+-- 
