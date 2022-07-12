@@ -1,3 +1,6 @@
 cache/
 out/
 .idea
+.certora_config/
+.last_confs/
+.certora_*
