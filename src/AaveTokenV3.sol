@@ -49,13 +49,11 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         _balances[delegatee].delegatedVotingBalance,
         delegationDelta
       );
-      //TODO: emit DelegatedPowerChanged maybe;
     } else {
       _balances[delegatee].delegatedPropositionBalance = operation(
         _balances[delegatee].delegatedPropositionBalance,
         delegationDelta
       );
-      //TODO: emit DelegatedPowerChanged maybe;
     }
   }
 
@@ -111,7 +109,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       uint104 fromBalanceAfter;
       unchecked {
-        //TODO: in general we don't need to check cast to uint104 because we know that it's less then balance from require
+        // @dev we don't need to check cast to uint104 because we know that it's less then balance from require
         fromBalanceAfter = fromUserState.balance - uint104(amount);
       }
       _balances[from].balance = fromBalanceAfter;

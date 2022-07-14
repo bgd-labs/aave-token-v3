@@ -19,17 +19,8 @@ interface IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   );
 
-  /**
-   * @dev emitted when an action changes the delegated power of a user
-   * @param user the user which delegated power has changed
-   * @param amount the amount of delegated power for the user
-   * @param delegationType the type of delegation (VOTING, PROPOSITION)
-   **/
-  event DelegatedPowerChanged(
-    address indexed user,
-    uint256 amount,
-    GovernancePowerType delegationType
-  );
+  // @dev we removed DelegatedPowerChanged event because to reconstruct the full state of the system,
+  // is enough to have Transfer and DelegateChanged TODO: document it
 
   /**
    * @dev delegates the specific power to a delegatee

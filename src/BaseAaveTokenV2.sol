@@ -28,7 +28,7 @@ abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
   bytes32 public constant PERMIT_TYPEHASH =
     keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
-  uint256 public constant REVISION = 3; // TODO: CHECK, but most probably was 2 before
+  uint256 public constant REVISION = 3; // @dev the revision before the update is 2
 
   /**
    * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
