@@ -34,6 +34,46 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
+  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
+    external
+    view
+    override
+    returns (address)
+  {
+    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function getDelegates(address delegator)
+    external
+    view
+    override
+    returns (address, address)
+  {
+    DelegationAwareBalance memory delegatorBalance = _balances[delegator];
+    return (
+      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
+      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.PROPOSITION)
+    );
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function getPowerCurrent(address user, GovernancePowerType delegationType)
+    external
+    view
+    override
+    returns (uint256)
+  {
+    DelegationAwareBalance memory userState = _balances[user];
+    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
+      ? _balances[user].balance
+      : 0;
+    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
+      DELEGATED_POWER_DIVIDER;
+    return userOwnPower + userDelegatedPower;
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
   function metaDelegateByType(
     address delegator,
     address delegatee,
@@ -100,32 +140,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     }
     _delegateByType(delegator, delegatee, GovernancePowerType.VOTING);
     _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
-  }
-
-  /// @inheritdoc IGovernancePowerDelegationToken
-  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
-    external
-    view
-    override
-    returns (address)
-  {
-    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
-  }
-
-  /// @inheritdoc IGovernancePowerDelegationToken
-  function getPowerCurrent(address user, GovernancePowerType delegationType)
-    external
-    view
-    override
-    returns (uint256)
-  {
-    DelegationAwareBalance memory userState = _balances[user];
-    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
-      ? _balances[user].balance
-      : 0;
-    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
-      DELEGATED_POWER_DIVIDER;
-    return userOwnPower + userDelegatedPower;
   }
 
   /**
@@ -320,7 +334,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
    * @dev This is the equivalent of an ERC20 transfer(), but for a power type: an atomic transfer of a balance (power).
    * When needed, it decreases the power of the `delegator` and when needed, it increases the power of the `delegatee`
    * @param delegator delegator
-   * @param _delegatee the user which delegated power has changed
+   * @param _delegatee the user which delegated power will change
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
   function _delegateByType(
