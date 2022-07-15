@@ -9,7 +9,9 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
-  uint256 public constant DELEGATED_POWER_DIVIDER = 1e10;
+  // @dev we assume that for the governance system 18 decimals of precision is not needed,
+  // by this constant we reduce it by 10, to 8 decimals
+  uint256 public constant DELEGATOR_POWER_SCALE_FACTOR = 1e10;
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
     keccak256(
@@ -160,9 +162,9 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     if (delegatee == address(0)) return;
     if (delegatorBalanceBefore == delegatorBalanceAfter) return;
 
-    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
-    uint72 delegatorBalanceBefore72 = uint72(delegatorBalanceBefore / DELEGATED_POWER_DIVIDER);
-    uint72 delegatorBalanceAfter72 = uint72(delegatorBalanceAfter / DELEGATED_POWER_DIVIDER);
+    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by DELEGATOR_POWER_SCALE_FACTOR
+    uint72 delegatorBalanceBefore72 = uint72(delegatorBalanceBefore / DELEGATOR_POWER_SCALE_FACTOR);
+    uint72 delegatorBalanceAfter72 = uint72(delegatorBalanceAfter / DELEGATOR_POWER_SCALE_FACTOR);
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
@@ -250,7 +252,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal pure returns (uint256) {
     return
-      DELEGATED_POWER_DIVIDER *
+      DELEGATOR_POWER_SCALE_FACTOR *
       (
         delegationType == GovernancePowerType.VOTING
           ? userState.delegatedVotingBalance
