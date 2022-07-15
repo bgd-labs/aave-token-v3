@@ -336,7 +336,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
    * @dev This is the equivalent of an ERC20 transfer(), but for a power type: an atomic transfer of a balance (power).
    * When needed, it decreases the power of the `delegator` and when needed, it increases the power of the `delegatee`
    * @param delegator delegator
-   * @param _delegatee the user which delegated power has changed
+   * @param _delegatee the user which delegated power will change
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
   function _delegateByType(

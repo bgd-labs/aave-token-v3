@@ -33,7 +33,7 @@ interface IGovernancePowerDelegationToken {
 
   /**
    * @dev delegates the specific power to a delegatee
-   * @param delegatee the user which delegated power has changed
+   * @param delegatee the user which delegated power will change
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
   function delegateByType(address delegatee, GovernancePowerType delegationType) external;
