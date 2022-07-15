@@ -178,33 +178,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev Changing one of governance power(Voting and Proposition) of delegatees depending on the delegator balance change
-   * @param delegator delegator
-   * @param delegatorState the current state of the delegator
-   * @param balanceBefore delegator balance before operation
-   * @param balanceAfter delegator balance after operation
-   **/
-  function _governancePowerTransfer(
-    address delegator,
-    DelegationAwareBalance memory delegatorState,
-    uint104 balanceBefore,
-    uint104 balanceAfter
-  ) internal {
-    _governancePowerTransferByType(
-      balanceBefore,
-      balanceAfter,
-      _getDelegateeByType(delegator, delegatorState, GovernancePowerType.VOTING),
-      GovernancePowerType.VOTING
-    );
-    _governancePowerTransferByType(
-      balanceBefore,
-      balanceAfter,
-      _getDelegateeByType(delegator, delegatorState, GovernancePowerType.PROPOSITION),
-      GovernancePowerType.PROPOSITION
-    );
-  }
-
-  /**
    * @dev performs all state changes related to balance transfer and corresponding delegation changes
    * @param from token sender
    * @param to token recipient
@@ -228,8 +201,20 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         fromBalanceAfter = fromUserState.balance - uint104(amount);
       }
       _balances[from].balance = fromBalanceAfter;
-      if (fromUserState.delegationState != DelegationState.NO_DELEGATION)
-        _governancePowerTransfer(from, fromUserState, fromUserState.balance, fromBalanceAfter);
+      if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
+        _governancePowerTransferByType(
+          fromUserState.balance,
+          fromBalanceAfter,
+          _getDelegateeByType(from, fromUserState, GovernancePowerType.VOTING),
+          GovernancePowerType.VOTING
+        );
+        _governancePowerTransferByType(
+          fromUserState.balance,
+          fromBalanceAfter,
+          _getDelegateeByType(from, fromUserState, GovernancePowerType.PROPOSITION),
+          GovernancePowerType.PROPOSITION
+        );
+      }
     }
 
     if (to != address(0)) {
@@ -239,7 +224,18 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
       _balances[to] = toUserState;
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
-        _governancePowerTransfer(to, toUserState, toUserState.balance, toBalanceBefore);
+        _governancePowerTransferByType(
+          toUserState.balance,
+          toBalanceBefore,
+          _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
+          GovernancePowerType.VOTING
+        );
+        _governancePowerTransferByType(
+          toUserState.balance,
+          toBalanceBefore,
+          _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
+          GovernancePowerType.PROPOSITION
+        );
       }
     }
   }
