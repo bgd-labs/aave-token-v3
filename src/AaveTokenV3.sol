@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-
 import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
 import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
 
@@ -11,7 +9,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
-  uint256 public constant DELEGATED_POWER_DIVIDER = 10**10;
+  uint256 public constant DELEGATED_POWER_DIVIDER = 1e10;
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
     keccak256(
@@ -33,32 +31,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   function delegate(address delegatee) external override {
     _delegateByType(msg.sender, delegatee, GovernancePowerType.VOTING);
     _delegateByType(msg.sender, delegatee, GovernancePowerType.PROPOSITION);
-  }
-
-  /// @inheritdoc IGovernancePowerDelegationToken
-  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
-    external
-    view
-    override
-    returns (address)
-  {
-    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
-  }
-
-  /// @inheritdoc IGovernancePowerDelegationToken
-  function getPowerCurrent(address user, GovernancePowerType delegationType)
-    external
-    view
-    override
-    returns (uint256)
-  {
-    DelegationAwareBalance memory userState = _balances[user];
-    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
-      ? _balances[user].balance
-      : 0;
-    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
-      DELEGATED_POWER_DIVIDER;
-    return userOwnPower + userDelegatedPower;
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
@@ -94,7 +66,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
     unchecked {
-      // does not make sense to check because it's not realistic to reach uint256.max in nonce
+      // Does not make sense to check because it's not realistic to reach uint256.max in nonce
       _nonces[delegator] = currentValidNonce + 1;
     }
     _delegateByType(delegator, delegatee, delegationType);
@@ -130,8 +102,34 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
   }
 
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
+    external
+    view
+    override
+    returns (address)
+  {
+    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function getPowerCurrent(address user, GovernancePowerType delegationType)
+    external
+    view
+    override
+    returns (uint256)
+  {
+    DelegationAwareBalance memory userState = _balances[user];
+    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
+      ? _balances[user].balance
+      : 0;
+    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
+      DELEGATED_POWER_DIVIDER;
+    return userOwnPower + userDelegatedPower;
+  }
+
   /**
-   * @dev changing one of delegated governance powers of delegatee depending on the delegator balance change
+   * @dev Changing one of delegated governance powers of delegatee depending on the delegator balance change
    * @param delegatorBalanceBefore delegator balance before operation
    * @param delegatorBalanceAfter delegator balance after operation
    * @param delegatee the user whom delegated governance power will be changed
@@ -146,7 +144,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     if (delegatee == address(0)) return;
     if (delegatorBalanceBefore == delegatorBalanceAfter) return;
 
-    // @dev to make delegated balance fit into uin72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
+    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
     uint72 delegatorBalanceBefore72 = uint72(delegatorBalanceBefore / DELEGATED_POWER_DIVIDER);
     uint72 delegatorBalanceAfter72 = uint72(delegatorBalanceAfter / DELEGATED_POWER_DIVIDER);
 
@@ -155,19 +153,16 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
         _balances[delegatee].delegatedVotingBalance -
         delegatorBalanceBefore72 +
         delegatorBalanceAfter72;
-
-      //TODO: emit DelegatedPowerChanged maybe;
     } else {
       _balances[delegatee].delegatedPropositionBalance =
         _balances[delegatee].delegatedPropositionBalance -
         delegatorBalanceBefore72 +
         delegatorBalanceAfter72;
-      //TODO: emit DelegatedPowerChanged maybe;
     }
   }
 
   /**
-   * @dev changing one of governance power(Voting and Proposition) of delegatees depending on the delegator balance change
+   * @dev Changing one of governance power(Voting and Proposition) of delegatees depending on the delegator balance change
    * @param delegator delegator
    * @param delegatorState the current state of the delegator
    * @param balanceBefore delegator balance before operation
@@ -214,7 +209,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       uint104 fromBalanceAfter;
       unchecked {
-        //TODO: in general we don't need to check cast to uint104 because we know that it's less then balance from require
+        /// We don't need to check cast to uint104 because we know that it's less then balance from require
         fromBalanceAfter = fromUserState.balance - uint104(amount);
       }
       _balances[from].balance = fromBalanceAfter;
@@ -235,7 +230,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev extracting and returning delegated governance power(Voting or Proposition) from user state
+   * @dev Extracts from state and returns delegated governance power (Voting, Proposition)
    * @param userState the current state of a user
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
@@ -250,7 +245,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev extracts from user state and returning delegatee by type of governance power(Voting or Proposition)
+   * @dev Extracts from state and returns the delegatee of a delegator by type of governance power (Voting, Proposition)
+   * - If the delegator doesn't have any delegatee, returns address(0)
    * @param delegator delegator
    * @param userState the current state of a user
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
@@ -262,6 +258,8 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   ) internal view returns (address) {
     if (delegationType == GovernancePowerType.VOTING) {
       return
+        /// With the & operation, we cover both VOTING_DELEGATED delegation and FULL_POWER_DELEGATED
+        /// as VOTING_DELEGATED is equivalent to 01 in binary and FULL_POWER_DELEGATED is equivalent to 11
         (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
           ? _votingDelegateeV2[delegator]
           : address(0);
@@ -273,7 +271,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev changing user's delegatee address by type of governance power(Voting or Proposition)
+   * @dev Changes user's delegatee address by type of governance power (Voting, Proposition)
    * @param delegator delegator
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    * @param _newDelegatee the new delegatee
@@ -292,7 +290,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev updates the specific flag which signaling about existence of delegation of governance power(Voting or Proposition)
+   * @dev Updates the specific flag which signaling about existence of delegation of governance power (Voting, Proposition)
    * @param userState a user state to change
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    * @param willDelegate next state of delegation
@@ -303,12 +301,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     bool willDelegate
   ) internal pure returns (DelegationAwareBalance memory) {
     if (willDelegate) {
-      // because GovernancePowerType starting from 0, we should add 1 first, then we apply bitwise OR
+      // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
       userState.delegationState = DelegationState(
         uint8(userState.delegationState) | (uint8(delegationType) + 1)
       );
     } else {
-      // first bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
+      // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
       // then bitwise AND, which means it will keep only another delegation type if it exists
       userState.delegationState = DelegationState(
         uint8(userState.delegationState) &

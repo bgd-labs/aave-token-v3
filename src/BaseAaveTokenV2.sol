@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-
 import {BaseAaveToken} from './BaseAaveToken.sol';
 
 abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
