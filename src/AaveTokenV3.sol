@@ -11,7 +11,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
-  uint256 public constant DELEGATED_POWER_DIVIDER = 10**10;
+  uint256 public constant DELEGATED_POWER_DIVIDER = 1e10;
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
     keccak256(
