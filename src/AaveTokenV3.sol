@@ -61,7 +61,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
   /// @inheritdoc IGovernancePowerDelegationToken
   function getPowerCurrent(address user, GovernancePowerType delegationType)
-    external
+    public
     view
     override
     returns (uint256)
@@ -73,6 +73,19 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
       DELEGATED_POWER_DIVIDER;
     return userOwnPower + userDelegatedPower;
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function getPowersCurrent(address user)
+    external
+    view
+    override
+    returns (uint256, uint256)
+  {
+    return (
+      getPowerCurrent(user, GovernancePowerType.VOTING),
+      getPowerCurrent(user, GovernancePowerType.PROPOSITION)
+    );
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken

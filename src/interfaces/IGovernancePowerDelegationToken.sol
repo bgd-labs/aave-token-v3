@@ -69,11 +69,22 @@ interface IGovernancePowerDelegationToken {
    * @dev returns the current voting or proposition power of a user.
    * @param user the user
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
+   * @return the current voting or proposition power of a user
    **/
   function getPowerCurrent(address user, GovernancePowerType delegationType)
     external
     view
     returns (uint256);
+
+  /**
+   * @dev returns the current voting or proposition power of a user.
+   * @param user the user
+   * @return the current voting and proposition power of a user
+   **/
+  function getPowersCurrent(address user)
+    external
+    view
+    returns (uint256, uint256);
 
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
