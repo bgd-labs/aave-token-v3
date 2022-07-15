@@ -47,11 +47,23 @@ interface IGovernancePowerDelegationToken {
   /**
    * @dev returns the delegatee of an user
    * @param delegator the address of the delegator
+   * @param delegationType the type of delegation (VOTING, PROPOSITION)
+   * @return address of the specified delegatee
    **/
   function getDelegateeByType(address delegator, GovernancePowerType delegationType)
     external
     view
     returns (address);
+
+  /**
+   * @dev returns delegates of an user
+   * @param delegator the address of the delegator
+   * @return a tuple of addresses the VOTING and PROPOSITION delegatee
+   **/
+  function getDelegates(address delegator)
+    external
+    view
+    returns (address, address);
 
   /**
    * @dev returns the current voting or proposition power of a user.

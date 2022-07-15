@@ -46,6 +46,20 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
+  function getDelegates(address delegator)
+    external
+    view
+    override
+    returns (address, address)
+  {
+    DelegationAwareBalance memory delegatorBalance = _balances[delegator];
+    return (
+      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
+      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.PROPOSITION)
+    );
+  }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
   function getPowerCurrent(address user, GovernancePowerType delegationType)
     external
     view
