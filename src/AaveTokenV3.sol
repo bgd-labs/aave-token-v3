@@ -44,12 +44,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
-  function getDelegates(address delegator)
-    external
-    view
-    override
-    returns (address, address)
-  {
+  function getDelegates(address delegator) external view override returns (address, address) {
     DelegationAwareBalance memory delegatorBalance = _balances[delegator];
     return (
       _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
@@ -73,12 +68,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
-  function getPowersCurrent(address user)
-    external
-    view
-    override
-    returns (uint256, uint256)
-  {
+  function getPowersCurrent(address user) external view override returns (uint256, uint256) {
     return (
       getPowerCurrent(user, GovernancePowerType.VOTING),
       getPowerCurrent(user, GovernancePowerType.PROPOSITION)
@@ -264,11 +254,12 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal pure returns (uint256) {
     return
-      DELEGATED_POWER_DIVIDER * (
-      delegationType == GovernancePowerType.VOTING
-        ? userState.delegatedVotingBalance
-        : userState.delegatedPropositionBalance
-    );
+      DELEGATED_POWER_DIVIDER *
+      (
+        delegationType == GovernancePowerType.VOTING
+          ? userState.delegatedVotingBalance
+          : userState.delegatedPropositionBalance
+      );
   }
 
   /**
