@@ -68,8 +68,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
       ? _balances[user].balance
       : 0;
-    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType) *
-      DELEGATED_POWER_DIVIDER;
+    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType);
     return userOwnPower + userDelegatedPower;
   }
 
@@ -236,7 +235,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       uint104 fromBalanceAfter;
       unchecked {
-        /// We don't need to check cast to uint104 because we know that it's less then balance from require
         fromBalanceAfter = fromUserState.balance - uint104(amount);
       }
       _balances[from].balance = fromBalanceAfter;
@@ -247,7 +245,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     if (to != address(0)) {
       DelegationAwareBalance memory toUserState = _balances[to];
       uint104 toBalanceBefore = toUserState.balance;
-      toUserState.balance = toBalanceBefore + uint104(amount); // TODO: check overflow?
+      toUserState.balance = toBalanceBefore + uint104(amount);
       _balances[to] = toUserState;
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
@@ -264,11 +262,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   function _getDelegatedPowerByType(
     DelegationAwareBalance memory userState,
     GovernancePowerType delegationType
-  ) internal pure returns (uint72) {
+  ) internal pure returns (uint256) {
     return
+      DELEGATED_POWER_DIVIDER * (
       delegationType == GovernancePowerType.VOTING
         ? userState.delegatedVotingBalance
-        : userState.delegatedPropositionBalance;
+        : userState.delegatedPropositionBalance
+    );
   }
 
   /**
