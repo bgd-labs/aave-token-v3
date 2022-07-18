@@ -2,9 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Strings} from '../../lib/openzeppelin-contracts/contracts/utils/Strings.sol';
-import {
-  IERC20Metadata
-} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import {AaveTokenV3} from '../AaveTokenV3.sol';
 
 import {AaveUtils, console} from './AaveUtils.sol';
@@ -18,11 +16,11 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     userState.delegatedVotingBalance = 200;
     assertEq(
       _getDelegatedPowerByType(userState, GovernancePowerType.VOTING),
-      userState.delegatedVotingBalance
+      userState.delegatedVotingBalance * DELEGATOR_POWER_SCALE_FACTOR
     );
     assertEq(
       _getDelegatedPowerByType(userState, GovernancePowerType.PROPOSITION),
-      userState.delegatedPropositionBalance
+      userState.delegatedPropositionBalance * DELEGATOR_POWER_SCALE_FACTOR
     );
   }
 
