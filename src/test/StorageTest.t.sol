@@ -41,8 +41,4 @@ contract StorageTest is AaveUtils {
       assertEq(AAVE_TOKEN.balanceOf(AAVE_HOLDERS[i]), balancesBefore[i]);
     }
   }
-
-  function testForAllowance() public {
-    // TODO: TBD
-  }
 }
