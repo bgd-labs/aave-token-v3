@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-
 import {BaseAaveToken} from './BaseAaveToken.sol';
 
 abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
@@ -28,7 +26,7 @@ abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
   bytes32 public constant PERMIT_TYPEHASH =
     keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
-  uint256 public constant REVISION = 3; // @dev the revision before the update is 2
+  uint256 public constant REVISION = 3;
 
   /**
    * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy

@@ -24,7 +24,7 @@ interface IGovernancePowerDelegationToken {
 
   /**
    * @dev delegates the specific power to a delegatee
-   * @param delegatee the user which delegated power has changed
+   * @param delegatee the user which delegated power will change
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
    **/
   function delegateByType(address delegatee, GovernancePowerType delegationType) external;
@@ -38,6 +38,8 @@ interface IGovernancePowerDelegationToken {
   /**
    * @dev returns the delegatee of an user
    * @param delegator the address of the delegator
+   * @param delegationType the type of delegation (VOTING, PROPOSITION)
+   * @return address of the specified delegatee
    **/
   function getDelegateeByType(address delegator, GovernancePowerType delegationType)
     external
@@ -45,14 +47,35 @@ interface IGovernancePowerDelegationToken {
     returns (address);
 
   /**
+   * @dev returns delegates of an user
+   * @param delegator the address of the delegator
+   * @return a tuple of addresses the VOTING and PROPOSITION delegatee
+   **/
+  function getDelegates(address delegator)
+    external
+    view
+    returns (address, address);
+
+  /**
    * @dev returns the current voting or proposition power of a user.
    * @param user the user
    * @param delegationType the type of delegation (VOTING, PROPOSITION)
+   * @return the current voting or proposition power of a user
    **/
   function getPowerCurrent(address user, GovernancePowerType delegationType)
     external
     view
     returns (uint256);
+
+  /**
+   * @dev returns the current voting or proposition power of a user.
+   * @param user the user
+   * @return the current voting and proposition power of a user
+   **/
+  function getPowersCurrent(address user)
+    external
+    view
+    returns (uint256, uint256);
 
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
