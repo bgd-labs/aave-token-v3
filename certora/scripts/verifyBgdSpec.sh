@@ -9,6 +9,6 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3 \
     --solc solc8.13 \
     --optimistic_loop \
     --send_only \
-    --staging \
+#    --staging \
     --msg "AaveTokenV3:bgdSpec.spec $1"
  
