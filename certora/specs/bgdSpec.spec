@@ -536,6 +536,8 @@ rule vpTransferWhenBothAreDelegating(address alice, address bob, address charlie
     uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
     uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, VOTING_POWER());
     uint256 bobDelegatePowerBefore = getPowerCurrent(bobDelegate, VOTING_POWER());
+    uint256 aliceBalanceBefore = balanceOf(alice);
+    uint256 bobBalanceBefore = balanceOf(bob);
 
     transferFrom(e, alice, bob, amount);
 
@@ -544,9 +546,13 @@ rule vpTransferWhenBothAreDelegating(address alice, address bob, address charlie
     uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
     uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
     uint256 bobDelegatePowerAfter = getPowerCurrent(bobDelegate, VOTING_POWER());
+    uint256 aliceBalanceAfter = balanceOf(alice);
+    uint256 bobBalanceafter = balanceOf(bob);
 
     assert alicePowerAfter == alicePowerBefore;
     assert bobPowerAfter == bobPowerBefore;
-    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(amount);
-    assert bobDelegatePowerAfter == bobDelegatePowerBefore + normalize (amount);
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(aliceBalanceBefore) 
+        + normalize(aliceBalanceAfter);
+    assert bobDelegatePowerAfter == bobDelegatePowerBefore - normalize(bobBalanceBefore) 
+        + normalize(bobBalanceafter);
 }
