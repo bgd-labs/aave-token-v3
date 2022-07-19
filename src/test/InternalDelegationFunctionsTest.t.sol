@@ -16,11 +16,11 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     userState.delegatedVotingBalance = 200;
     assertEq(
       _getDelegatedPowerByType(userState, GovernancePowerType.VOTING),
-      userState.delegatedVotingBalance * DELEGATOR_POWER_SCALE_FACTOR
+      userState.delegatedVotingBalance * POWER_SCALE_FACTOR
     );
     assertEq(
       _getDelegatedPowerByType(userState, GovernancePowerType.PROPOSITION),
-      userState.delegatedPropositionBalance * DELEGATOR_POWER_SCALE_FACTOR
+      userState.delegatedPropositionBalance * POWER_SCALE_FACTOR
     );
   }
 
