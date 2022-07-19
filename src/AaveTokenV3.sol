@@ -234,14 +234,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
           GovernancePowerType.VOTING
         );
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
           GovernancePowerType.PROPOSITION
         );
