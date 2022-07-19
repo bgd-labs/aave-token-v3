@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
+import {VersionedInitializable} from '../../src/utils/VersionedInitializable.sol';
 
-import {IGovernancePowerDelegationToken} from '../interfaces/IGovernancePowerDelegationToken.sol';
+import {IGovernancePowerDelegationToken} from '../../src/interfaces/IGovernancePowerDelegationToken.sol';
 import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
-import {MathUtils} from '../utils/MathUtils.sol';
+import {MathUtils} from '../../src/utils/MathUtils.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
@@ -106,10 +106,13 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   ) internal {
     if (delegatee == address(0)) return;
 
+    // FIXING A PRECISION ISSUE HERE
+
     // @dev to make delegated balance fit into uin72 we're decreasing precision of delegated balance by DELEGATED_POWER_DIVIDER
-    uint72 delegationDelta = uint72(
-      (userBalanceBefore / DELEGATED_POWER_DIVIDER) - (userBalanceAfter / DELEGATED_POWER_DIVIDER)
-    );
+    // uint72 delegationDelta = uint72(
+    //   (userBalanceBefore / DELEGATED_POWER_DIVIDER) - (userBalanceAfter / DELEGATED_POWER_DIVIDER)
+    // );
+    uint72 delegationDelta = uint72((userBalanceBefore - userBalanceAfter) / DELEGATED_POWER_DIVIDER);
     if (delegationDelta == 0) return;
 
     if (delegationType == GovernancePowerType.VOTING) {

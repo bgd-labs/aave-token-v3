@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 // harness: import BaseAaveToken from harness file
 
-import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
+import {VersionedInitializable} from '../../src/utils/VersionedInitializable.sol';
 
 import {BaseAaveToken} from './BaseAaveTokenHarness.sol';
 

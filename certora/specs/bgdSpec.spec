@@ -10,18 +10,8 @@ methods{
     transfer(address to, uint256 amount) returns (bool)
     transferFrom(address from, address to, uint256 amount) returns (bool)
 
-    DELEGATED_POWER_DIVIDER() returns (uint256)
-    DELEGATE_BY_TYPE_TYPEHASH() returns (bytes32)
-    DELEGATE_TYPEHASH() returns (bytes32)
     delegate(address delegatee)
-    // getDelegateeByType(address delegator, GovernancePowerType delegationType) returns (address)
-    // getPowerCurrent(address, GovernancePowerType delegationType) returns (uint256)
-    // metaDelegateByType(address, address, GovernancePowerType delegationType, uint256, uint8, bytes32, bytes32)
     metaDelegate(address, address, uint256, uint8, bytes32, bytes32)
-    // enum GovernancePowerType {
-    //     VOTING,
-    //     PROPOSITION
-    // }
     getPowerCurrent(address user, uint8 delegationType) returns (uint256) envfree
 
     getBalance(address user) returns (uint104) envfree
@@ -35,6 +25,11 @@ methods{
 
 definition VOTING_POWER() returns uint8 = 0;
 definition PROPOSITION_POWER() returns uint8 = 1;
+definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
+
+function normalize(uint256 amount) returns uint256 {
+    return to_uint256(amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
+}
 
 // for test - it shouldnt pass
 // invariant ZeroAddressNoDelegation()
@@ -205,4 +200,353 @@ rule selfDelegationCorrectness(address account) {
     assert votingDelegate == 0 || votingDelegate == account => isDelegatingVoting == false;
     assert propositionDelegate == 0 || propositionDelegate == account => isDelegatingProposition == false;
 
+}
+
+/**
+    Account1 and account2 are not delegating power
+*/
+
+rule vpTransferWhenBothNotDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    bool isBobDelegatingVoting = getDelegatingVoting(bob);
+
+    require !isAliceDelegatingVoting && !isBobDelegatingVoting;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+
+    assert alicePowerAfter == alicePowerBefore - amount;
+    assert bobPowerAfter == bobPowerBefore + amount;
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+
+rule ppTransferWhenBothNotDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingProposition = getDelegatingProposition(alice);
+    // bool isAliceDelegatingProposition = getDelegatedProposition(alice);
+
+    bool isBobDelegatingProposition = getDelegatingProposition(bob);
+    // bool isBobDelegatingProposition = getDelegatedProposition(bob);
+
+    require !isAliceDelegatingProposition && !isBobDelegatingProposition;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, PROPOSITION_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, PROPOSITION_POWER());
+
+    assert alicePowerAfter == alicePowerBefore - amount;
+    assert bobPowerAfter == bobPowerBefore + amount;
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+rule vpDelegateWhenBothNotDelegating(address alice, address bob, address charlie) {
+    env e;
+    require alice == e.msg.sender;
+    require alice != 0 && bob != 0 && charlie != 0;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    bool isBobDelegatingVoting = getDelegatingVoting(bob);
+
+    require !isAliceDelegatingVoting && !isBobDelegatingVoting;
+
+    uint256 aliceBalance = balanceOf(alice);
+    uint256 bobBalance = balanceOf(bob);
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+
+    delegate(e, bob);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+
+    assert alicePowerAfter == alicePowerBefore - aliceBalance;
+    assert bobPowerAfter == bobPowerBefore + (aliceBalance / DELEGATED_POWER_DIVIDER()) * DELEGATED_POWER_DIVIDER();
+    assert getVotingDelegate(alice) == bob;
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+rule ppDelegateWhenBothNotDelegating(address alice, address bob, address charlie) {
+    env e;
+    require alice == e.msg.sender;
+    require alice != 0 && bob != 0 && charlie != 0;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingProposition = getDelegatingProposition(alice);
+    bool isBobDelegatingProposition = getDelegatingProposition(bob);
+
+    require !isAliceDelegatingProposition && !isBobDelegatingProposition;
+
+    uint256 aliceBalance = balanceOf(alice);
+    uint256 bobBalance = balanceOf(bob);
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, PROPOSITION_POWER());
+
+    delegate(e, bob);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, PROPOSITION_POWER());
+
+    assert alicePowerAfter == alicePowerBefore - aliceBalance;
+    assert bobPowerAfter == bobPowerBefore + (aliceBalance / DELEGATED_POWER_DIVIDER()) * DELEGATED_POWER_DIVIDER();
+    assert getPropositionDelegate(alice) == bob;
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+/**
+    Account1 is delegating power to delegatee1, account2 is not delegating power to anybody
+*/
+
+// token transfer from alice to bob
+
+rule vpTransferWhenOnlyOneIsDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    bool isBobDelegatingVoting = getDelegatingVoting(bob);
+    address aliceDelegate = getVotingDelegate(alice);
+    require aliceDelegate != alice && aliceDelegate != 0 && aliceDelegate != bob && aliceDelegate != charlie;
+
+    require isAliceDelegatingVoting && !isBobDelegatingVoting;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    // no delegation of anyone to Alice
+    require alicePowerBefore == 0;
+
+    uint256 bobPowerBefore = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, VOTING_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
+
+    // still zero
+    assert alicePowerBefore == alicePowerAfter;
+    assert aliceDelegatePowerAfter == 
+        aliceDelegatePowerBefore - normalize(amount);
+    assert bobPowerAfter == bobPowerBefore + amount;
+    assert charliePowerBefore == charliePowerAfter;
+}
+
+/**
+before: 133160000000000
+amount: 30900000000001
+after: 102250000000000
+
+*/ 
+
+rule ppTransferWhenOnlyOneIsDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingProposition = getDelegatingProposition(alice);
+    bool isBobDelegatingProposition = getDelegatingProposition(bob);
+    address aliceDelegate = getPropositionDelegate(alice);
+
+    require isAliceDelegatingProposition && !isBobDelegatingProposition;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+    // no delegation of anyone to Alice
+    require alicePowerBefore == 0;
+
+    uint256 bobPowerBefore = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, PROPOSITION_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, PROPOSITION_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, PROPOSITION_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, PROPOSITION_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, PROPOSITION_POWER());
+
+    // still zero
+    assert alicePowerBefore == alicePowerAfter;
+    // this is the equation in the properties.md, but it's wrong when amount == 10 ^ 10
+    // assert aliceDelegatePowerAfter == 
+    //     aliceDelegatePowerBefore - (amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore;
+    assert bobPowerAfter == bobPowerBefore + amount;
+    assert charliePowerBefore == charliePowerAfter;
+}
+
+// After account1 will stop delegating his power to delegatee1
+rule vpStopDelegatingWhenOnlyOneIsDelegating(address alice, address charlie) {
+    env e;
+    require alice != charlie;
+    require alice == e.msg.sender;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    address aliceDelegate = getVotingDelegate(alice);
+
+    require isAliceDelegatingVoting;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, VOTING_POWER());
+
+    delegate(e, 0);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
+
+    assert alicePowerAfter == alicePowerBefore + balanceOf(alice);
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - balanceOf(alice);
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+rule ppStopDelegatingWhenOnlyOneIsDelegating(address alice, address charlie) {
+    env e;
+    require alice != charlie;
+    require alice == e.msg.sender;
+
+    bool isAliceDelegatingProposition = getDelegatingProposition(alice);
+    address aliceDelegate = getPropositionDelegate(alice);
+
+    require isAliceDelegatingProposition;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, PROPOSITION_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, PROPOSITION_POWER());
+
+    delegate(e, 0);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, PROPOSITION_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, PROPOSITION_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, PROPOSITION_POWER());
+
+    assert alicePowerAfter == alicePowerBefore + balanceOf(alice);
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - balanceOf(alice);
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+rule vpChangeDelegateWhenOnlyOneIsDelegating(address alice, address delegate2, address charlie) {
+    env e;
+    require alice != charlie && alice != delegate2 && charlie != delegate2;
+    require alice == e.msg.sender;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    address aliceDelegate = getVotingDelegate(alice);
+    require aliceDelegate != alice && aliceDelegate != 0 && aliceDelegate != delegate2 && delegate2 != 0;
+
+    require isAliceDelegatingVoting;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, VOTING_POWER());
+    uint256 delegate2PowerBefore = getPowerCurrent(delegate2, VOTING_POWER());
+
+    delegate(e, delegate2);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
+    uint256 delegate2PowerAfter = getPowerCurrent(delegate2, VOTING_POWER());
+    address aliceDelegateAfter = getVotingDelegate(alice);
+
+    assert alicePowerBefore == alicePowerAfter;
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(balanceOf(alice));
+    assert delegate2PowerAfter == delegate2PowerBefore + normalize(balanceOf(alice));
+    assert aliceDelegateAfter == delegate2;
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+// Account1 not delegating power to anybody, account2 is delegating power to delegatee2
+
+rule vpOnlyAccount2IsDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    bool isBobDelegatingVoting = getDelegatingVoting(bob);
+    address bobDelegate = getVotingDelegate(bob);
+    require bobDelegate != bob && bobDelegate != 0 && bobDelegate != alice && bobDelegate != charlie;
+
+    require !isAliceDelegatingVoting && isBobDelegatingVoting;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, VOTING_POWER());
+    require bobPowerBefore == 0;
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 bobDelegatePowerBefore = getPowerCurrent(bobDelegate, VOTING_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 bobDelegatePowerAfter = getPowerCurrent(bobDelegate, VOTING_POWER());
+
+    assert alicePowerAfter == alicePowerBefore - amount;
+    assert bobPowerAfter == 0;
+    assert bobDelegatePowerAfter == bobDelegatePowerBefore + normalize(amount);
+
+    assert charliePowerAfter == charliePowerBefore;
+}
+
+//add for proposition
+
+// Account1 is delegating power to delegatee1, account2 is delegating power to delegatee2
+rule vpTransferWhenBothAreDelegating(address alice, address bob, address charlie, uint256 amount) {
+    env e;
+    require alice != bob && bob != charlie && alice != charlie;
+
+    bool isAliceDelegatingVoting = getDelegatingVoting(alice);
+    bool isBobDelegatingVoting = getDelegatingVoting(bob);
+    require isAliceDelegatingVoting && isBobDelegatingVoting;
+    address aliceDelegate = getVotingDelegate(alice);
+    address bobDelegate = getVotingDelegate(bob);
+    require aliceDelegate != alice && aliceDelegate != 0 && aliceDelegate != bob && aliceDelegate != charlie;
+    require bobDelegate != bob && bobDelegate != 0 && bobDelegate != alice && bobDelegate != charlie;
+    require aliceDelegate != bobDelegate;
+
+    uint256 alicePowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerBefore = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerBefore = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerBefore = getPowerCurrent(aliceDelegate, VOTING_POWER());
+    uint256 bobDelegatePowerBefore = getPowerCurrent(bobDelegate, VOTING_POWER());
+
+    transferFrom(e, alice, bob, amount);
+
+    uint256 alicePowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint256 bobPowerAfter = getPowerCurrent(bob, VOTING_POWER());
+    uint256 charliePowerAfter = getPowerCurrent(charlie, VOTING_POWER());
+    uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
+    uint256 bobDelegatePowerAfter = getPowerCurrent(bobDelegate, VOTING_POWER());
+
+    assert alicePowerAfter == alicePowerBefore;
+    assert bobPowerAfter == bobPowerBefore;
+    assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(amount);
+    assert bobDelegatePowerAfter == bobDelegatePowerBefore + normalize (amount);
 }
