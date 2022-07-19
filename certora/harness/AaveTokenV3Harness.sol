@@ -224,73 +224,50 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     if (to != address(0)) {
       DelegationAwareBalance memory toUserState = _balances[to];
       uint104 toBalanceBefore = toUserState.balance;
-      toUserState.balance = toBalanceBefore + uint104(amount);
+      toUserState.balance = toBalanceBefore + uint104(amount); // TODO: check overflow?
       _balances[to] = toUserState;
 
-      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
-        _governancePowerTransferByType(
-          toUserState.balance,
-          toBalanceBefore,
-          _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
-          GovernancePowerType.VOTING
-        );
-        _governancePowerTransferByType(
-          toUserState.balance,
-          toBalanceBefore,
-          _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
-          GovernancePowerType.PROPOSITION
-        );
+      if (toUserState.delegatingVoting || toUserState.delegatingProposition) {
+        _delegationMove(to, toUserState, toUserState.balance, toBalanceBefore, MathUtils.plus);
       }
     }
   }
 
   /**
-   * @dev Extracts from state and returns delegated governance power (Voting, Proposition)
+   * @dev extracting and returning delegated governance power(Voting or Proposition) from user state
    * @param userState the current state of a user
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
   function _getDelegatedPowerByType(
     DelegationAwareBalance memory userState,
     GovernancePowerType delegationType
-  ) internal pure returns (uint256) {
+  ) internal pure returns (uint72) {
     return
-      DELEGATOR_POWER_SCALE_FACTOR *
-      (
-        delegationType == GovernancePowerType.VOTING
-          ? userState.delegatedVotingBalance
-          : userState.delegatedPropositionBalance
-      );
+      delegationType == GovernancePowerType.VOTING
+        ? userState.delegatedVotingBalance
+        : userState.delegatedPropositionBalance;
   }
 
   /**
-   * @dev Extracts from state and returns the delegatee of a delegator by type of governance power (Voting, Proposition)
-   * - If the delegator doesn't have any delegatee, returns address(0)
-   * @param delegator delegator
+   * @dev extracts from user state and returning delegatee by type of governance power(Voting or Proposition)
+   * @param user delegator
    * @param userState the current state of a user
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
   function _getDelegateeByType(
-    address delegator,
+    address user,
     DelegationAwareBalance memory userState,
     GovernancePowerType delegationType
   ) internal view returns (address) {
     if (delegationType == GovernancePowerType.VOTING) {
-      return
-        /// With the & operation, we cover both VOTING_DELEGATED delegation and FULL_POWER_DELEGATED
-        /// as VOTING_DELEGATED is equivalent to 01 in binary and FULL_POWER_DELEGATED is equivalent to 11
-        (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
-          ? _votingDelegateeV2[delegator]
-          : address(0);
+      return userState.delegatingVoting ? _votingDelegateeV2[user] : address(0);
     }
-    return
-      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
-        ? _propositionDelegateeV2[delegator]
-        : address(0);
+    return userState.delegatingProposition ? _propositionDelegateeV2[user] : address(0);
   }
 
   /**
-   * @dev Changes user's delegatee address by type of governance power (Voting, Proposition)
-   * @param delegator delegator
+   * @dev changing user's delegatee address by type of governance power(Voting or Proposition)
+   * @param user delegator
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    * @param _newDelegatee the new delegatee
    **/

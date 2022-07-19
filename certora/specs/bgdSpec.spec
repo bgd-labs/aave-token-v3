@@ -550,21 +550,3 @@ rule vpTransferWhenBothAreDelegating(address alice, address bob, address charlie
     assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(amount);
     assert bobDelegatePowerAfter == bobDelegatePowerBefore + normalize (amount);
 }
-
-/***
-
-aliceDelegate before: 0x2cd68cfcc800 = 49300000000000
-bobDelegate before: 0x63ced5b7b800 = 109740000000000
-
-transfer: alice->bob 246
-
-aliceDelegate after: 0x2cd68cfcc800 = 49300000000000
-bobDelegate after: 0x63cc81abd400 = 109730000000000
-
-0x143ecf6488f6, delegatorBalanceAfter=0x143ecf648800
-
-balbefore: 0x569c76526c00 = 95230000000000 = 9523
-balAfter:0x569c76526b0a = 95229999999754 = 9522
-
-
-*/
