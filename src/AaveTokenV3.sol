@@ -170,20 +170,19 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
+    uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
+    uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
+
     if (delegationType == GovernancePowerType.VOTING) {
-      _balances[delegatee].delegatedVotingBalance = uint72(
-        (uint104(_balances[delegatee].delegatedVotingBalance) *
-          POWER_SCALE_FACTOR -
-          impactOnDelegationBefore +
-          impactOnDelegationAfter) / POWER_SCALE_FACTOR
-      );
+      _balances[delegatee].delegatedVotingBalance =
+        _balances[delegatee].delegatedVotingBalance -
+        impactOnDelegationBefore72 +
+        impactOnDelegationAfter72;
     } else {
-      _balances[delegatee].delegatedPropositionBalance = uint72(
-        (uint104(_balances[delegatee].delegatedPropositionBalance) *
-          POWER_SCALE_FACTOR -
-          impactOnDelegationBefore +
-          impactOnDelegationAfter) / POWER_SCALE_FACTOR
-      );
+      _balances[delegatee].delegatedPropositionBalance =
+        _balances[delegatee].delegatedPropositionBalance -
+        impactOnDelegationBefore72 +
+        impactOnDelegationAfter72;
     }
   }
 
