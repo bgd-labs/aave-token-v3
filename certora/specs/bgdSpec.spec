@@ -21,6 +21,8 @@ methods{
     getDelegatingVoting(address user) returns (bool) envfree
     getVotingDelegate(address user) returns (address) envfree
     getPropositionDelegate(address user) returns (address) envfree
+
+    _governancePowerTransferByType(uint104, uint104, address, uint8)
 }
 
 definition VOTING_POWER() returns uint8 = 0;
@@ -547,12 +549,51 @@ rule vpTransferWhenBothAreDelegating(address alice, address bob, address charlie
     uint256 aliceDelegatePowerAfter = getPowerCurrent(aliceDelegate, VOTING_POWER());
     uint256 bobDelegatePowerAfter = getPowerCurrent(bobDelegate, VOTING_POWER());
     uint256 aliceBalanceAfter = balanceOf(alice);
-    uint256 bobBalanceafter = balanceOf(bob);
+    uint256 bobBalanceAfter = balanceOf(bob);
 
     assert alicePowerAfter == alicePowerBefore;
     assert bobPowerAfter == bobPowerBefore;
     assert aliceDelegatePowerAfter == aliceDelegatePowerBefore - normalize(aliceBalanceBefore) 
         + normalize(aliceBalanceAfter);
-    assert bobDelegatePowerAfter == bobDelegatePowerBefore - normalize(bobBalanceBefore) 
-        + normalize(bobBalanceafter);
+
+    uint256 normalizedBalanceBefore = normalize(bobBalanceBefore);
+    uint256 normalizedBalanceAfter = normalize(bobBalanceAfter);
+    uint256 delta = bobBalanceAfter - bobBalanceBefore;
+    assert bobDelegatePowerAfter == bobDelegatePowerBefore - normalizedBalanceBefore + normalizedBalanceAfter;
+    // assert bobDelegatePowerAfter == bobDelegatePowerBefore - normalize(delta);
 }
+
+rule test_governancePowerTransferByType(uint104 impactBefore, uint104 impactAfter, address delegatee, uint8 type) {
+    env e;
+    require type == 0 || type == 1;
+
+    _governancePowerTransferByType@withrevert(e, impactBefore, impactAfter, delegatee, type);
+    assert !lastReverted;
+}
+
+
+/***
+
+
+bobDelegate power before: 0x30d4ad60c400 = 53690000000000
+bob balance before: 0x2540c00cb = 10000007371
+
+transfer alice -> bob 0x6fc238f34 = 29999992628
+
+bob balance after: 0x9502f8fff = 39999999999
+bobDelegate power after: 0x30d00548fc00 = 53670000000000
+
+expected: 0x30d25954e000 = 53680000000000
+0x30d955788c00
+                                
+
+delta: 0x1001d1bf7ff = 1099999999999
+
+1. bobDelegate power before: 0x30d4ad60c400 = 53690000000000
+2. bobDelegate power after: 0x30d00548fc00 = 53670000000000
+
+3. bobDelegatePowerBefore-normalize(bobBalanceBefore)+intnormalize(bobBalanceafter) = 
+53690000000000 - normalize(10000007371) + normalize(39999999999) = 
+53690000000000 - 10000000000 + 30000000000 = 53710000000000
+
+*/

@@ -165,13 +165,23 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint104 impactOnDelegationAfter,
     address delegatee,
     GovernancePowerType delegationType
-  ) internal {
+  ) public { // public instead of internal for testing a particular condition in this function
     if (delegatee == address(0)) return;
     if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
     uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
     uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
+
+    bool testCondition = (delegationType == GovernancePowerType.VOTING
+            &&
+            _balances[delegatee].delegatedVotingBalance < impactOnDelegationBefore72)
+            || (
+            delegationType == GovernancePowerType.PROPOSITION
+            &&
+            _balances[delegatee].delegatedPropositionBalance < impactOnDelegationBefore72
+            );
+    require(!testCondition);
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
@@ -234,14 +244,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
           GovernancePowerType.VOTING
         );
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
           GovernancePowerType.PROPOSITION
         );
