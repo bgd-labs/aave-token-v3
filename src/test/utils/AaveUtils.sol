@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../../lib/forge-std/src/Test.sol';
+import 'forge-std/Test.sol';
 
-import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import {IBaseAdminUpgradeabilityProxy} from './utils/IBaseAdminUpgradeabilityProxy.sol';
+import {IERC20Metadata} from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
-import {AaveTokenV3} from '../AaveTokenV3.sol';
+import {AaveTokenV3} from '../../AaveTokenV3.sol';
+
+import {IBaseAdminUpgradeabilityProxy} from './IBaseAdminUpgradeabilityProxy.sol';
 
 abstract contract AaveUtils is Test {
   address[] public AAVE_HOLDERS;

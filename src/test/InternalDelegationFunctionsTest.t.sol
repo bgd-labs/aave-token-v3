@@ -5,7 +5,7 @@ import {Strings} from '../../lib/openzeppelin-contracts/contracts/utils/Strings.
 import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import {AaveTokenV3} from '../AaveTokenV3.sol';
 
-import {AaveUtils, console} from './AaveUtils.sol';
+import {AaveUtils, console} from './utils/AaveUtils.sol';
 
 contract StorageTest is AaveTokenV3, AaveUtils {
   function setUp() public {}
