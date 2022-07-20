@@ -5,10 +5,9 @@ fi
 
 certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3 \
     --verify AaveTokenV3:certora/specs/setup.spec \
-    --rule $1 \
+    $RULE \
     --solc solc8.13 \
     --optimistic_loop \
     --send_only \
-#    --staging \
+    --staging \
     --msg "AaveTokenV3:setup.spec $1"
- 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from '../../src/utils/VersionedInitializable.sol';
 import {IGovernancePowerDelegationToken} from '../../src/interfaces/IGovernancePowerDelegationToken.sol';
-import {BaseAaveTokenV2} from '../../src/BaseAaveTokenV2.sol';
+import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   mapping(address => address) internal _votingDelegateeV2;
