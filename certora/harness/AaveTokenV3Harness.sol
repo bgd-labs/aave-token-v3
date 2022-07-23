@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
-import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
+import {VersionedInitializable} from '../../src/utils/VersionedInitializable.sol';
+import {IGovernancePowerDelegationToken} from '../../src/interfaces/IGovernancePowerDelegationToken.sol';
+import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
-
-
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
@@ -167,13 +165,23 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint104 impactOnDelegationAfter,
     address delegatee,
     GovernancePowerType delegationType
-  ) internal {
+  ) public { // public instead of internal for testing a particular condition in this function
     if (delegatee == address(0)) return;
     if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
     uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
     uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
+
+    bool testCondition = (delegationType == GovernancePowerType.VOTING
+            &&
+            _balances[delegatee].delegatedVotingBalance < impactOnDelegationBefore72)
+            || (
+            delegationType == GovernancePowerType.PROPOSITION
+            &&
+            _balances[delegatee].delegatedPropositionBalance < impactOnDelegationBefore72
+            );
+    require(!testCondition);
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
@@ -386,4 +394,56 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     emit DelegateChanged(delegator, delegatee, delegationType);
   }
+
+  /** 
+    Harness section - replace struct reads and writes with function calls
+   */
+
+//   struct DelegationAwareBalance {
+//     uint104 balance;
+//     uint72 delegatedPropositionBalance;
+//     uint72 delegatedVotingBalance;
+//     bool delegatingProposition;
+//     bool delegatingVoting;
+//   }
+
+
+   function getBalance(address user) view public returns (uint104) {
+    return _balances[user].balance;
+   }
+
+   function getDelegatedPropositionBalance(address user) view public returns (uint72) {
+    return _balances[user].delegatedPropositionBalance;
+   }
+
+
+   function getDelegatedVotingBalance(address user) view public returns (uint72) {
+    return _balances[user].delegatedVotingBalance;
+   }
+
+
+   function getDelegatingProposition(address user) view public returns (bool) {
+    return _balances[user].delegationState == DelegationState.PROPOSITION_DELEGATED ||
+        _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+   }
+
+
+   function getDelegatingVoting(address user) view public returns (bool) {
+     return _balances[user].delegationState == DelegationState.VOTING_DELEGATED ||
+        _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+   }
+
+   function getVotingDelegate(address user) view public returns (address) {
+    return _votingDelegateeV2[user];
+   }
+
+   function getPropositionDelegate(address user) view public returns (address) {
+    return _propositionDelegateeV2[user];
+   }
+
+
+
+   /**
+     End of harness section
+    */
 }
