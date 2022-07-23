@@ -9,5 +9,5 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3 \
     --solc solc8.13 \
     --optimistic_loop \
     --send_only \
-    --staging \
+    --cloud \
     --msg "AaveTokenV3:setup.spec $1"
