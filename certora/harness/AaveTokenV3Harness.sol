@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from '../../src/utils/VersionedInitializable.sol';
 import {IGovernancePowerDelegationToken} from '../../src/interfaces/IGovernancePowerDelegationToken.sol';
-import {BaseAaveTokenV2} from '../../src/BaseAaveTokenV2.sol';
+import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   mapping(address => address) internal _votingDelegateeV2;
@@ -172,16 +172,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
     uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
     uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
-
-    bool testCondition = (delegationType == GovernancePowerType.VOTING
-            &&
-            _balances[delegatee].delegatedVotingBalance < impactOnDelegationBefore72)
-            || (
-            delegationType == GovernancePowerType.PROPOSITION
-            &&
-            _balances[delegatee].delegatedPropositionBalance < impactOnDelegationBefore72
-            );
-    require(!testCondition);
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
@@ -439,6 +429,10 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
    function getPropositionDelegate(address user) view public returns (address) {
     return _propositionDelegateeV2[user];
+   }
+
+   function getDelegationState(address user) view public returns (DelegationState) {
+    return _balances[user].delegationState;
    }
 
 

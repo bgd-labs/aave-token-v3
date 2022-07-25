@@ -30,15 +30,20 @@ methods{
     Constants
 
 */
-
+// GovernancyType enum from the token contract
 definition VOTING_POWER() returns uint8 = 0;
 definition PROPOSITION_POWER() returns uint8 = 1;
+
 definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
+
+// 16000000 * 10^18 is the maximum supply of the AAVE token
 definition MAX_DELEGATED_BALANCE() returns uint256 = 16000000 * 10^18 / DELEGATED_POWER_DIVIDER();
 
 /**
 
-    Function that normalizes (removes 10 least significant digits) a given param
+    Function that normalizes (removes 10 least significant digits) a given param. 
+    It mirrors the way delegated balances are stored in the token contract. Since the delegated
+    balance is stored as a uint72 variable, delegated amounts (uint256()) are normalized.
 
 */
 
@@ -70,16 +75,21 @@ rule delegateCorrectness(address bob) {
 
     delegate(e, bob);
 
-    address delegateAfter = getVotingDelegate(e.msg.sender);
     // test the delegate indeed has changed to bob
+    address delegateAfter = getVotingDelegate(e.msg.sender);
     assert delegateAfter == bob;
 
-    uint256 bobVotingPowerAfter = getPowerCurrent(bob, VOTING_POWER());
-    
     // test the delegate's new voting power
+    uint256 bobVotingPowerAfter = getPowerCurrent(bob, VOTING_POWER());
     assert bobVotingPowerAfter == bobVotingPowerBefore + normalize(delegatorBalance);
 }
 
+/**
+
+    Verify that only delegate functions can change someone's delegate.
+    An example for a parametric rule.
+
+*/
 
 rule votingDelegateChanges(address alice, method f) {
     env e;
@@ -98,3 +108,20 @@ rule votingDelegateChanges(address alice, method f) {
         f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
         f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector;
 }
+
+/**
+
+    A ghost variable that tracks the sum of all addresses' balances
+
+*/
+ghost mathint sumBalances {
+    init_state axiom sumBalances == 0;
+}
+
+hook Sstore _balances[KEY address user].balance uint104 balance
+    (uint104 old_balance) STORAGE {
+        sumBalances = sumBalances - to_mathint(old_balance) + to_mathint(balance);
+    }
+
+invariant totalSupplyEqualsBalances()
+    sumBalances == totalSupply()

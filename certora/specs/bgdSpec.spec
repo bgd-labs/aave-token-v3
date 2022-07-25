@@ -1,87 +1,5 @@
-// using DelegationAwareBalance from "./BaseAaveToken.sol";
+import "base.spec"
 
-// issues:
-// for enum, just use 0 (voting) and 1 (proposition) or local definition
-// for struct use harness that replaces reads and writes with solidity functions
-
-methods{
-    totalSupply() returns (uint256) envfree
-    balanceOf(address addr) returns (uint256) envfree
-    transfer(address to, uint256 amount) returns (bool)
-    transferFrom(address from, address to, uint256 amount) returns (bool)
-
-    delegate(address delegatee)
-    metaDelegate(address, address, uint256, uint8, bytes32, bytes32)
-    getPowerCurrent(address user, uint8 delegationType) returns (uint256) envfree
-
-    getBalance(address user) returns (uint104) envfree
-    getDelegatedPropositionBalance(address user) returns (uint72) envfree
-    getDelegatedVotingBalance(address user) returns (uint72) envfree
-    getDelegatingProposition(address user) returns (bool) envfree
-    getDelegatingVoting(address user) returns (bool) envfree
-    getVotingDelegate(address user) returns (address) envfree
-    getPropositionDelegate(address user) returns (address) envfree
-
-    _governancePowerTransferByType(uint104, uint104, address, uint8)
-}
-
-definition VOTING_POWER() returns uint8 = 0;
-definition PROPOSITION_POWER() returns uint8 = 1;
-definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
-
-function normalize(uint256 amount) returns uint256 {
-    return to_uint256(amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
-}
-
-// for test - it shouldnt pass
-// invariant ZeroAddressNoDelegation()
-//     getPowerCurrent(0, 0) == 0 && getPowerCurrent(0, 1) == 0
-
-// The total power (of one type) of all users in the system is less or equal than 
-// the sum of balances of all AAVE holders (totalSupply of AAVE token)
-
-// accumulator for a  sum of proposition voting power
-ghost mathint sumDelegatedProposition {
-    init_state axiom sumDelegatedProposition == 0;
-}
-
-ghost mathint sumBalances {
-    init_state axiom sumBalances == 0;
-}
-
-/*
-  update proposition balance on each store
- */
-hook Sstore _balances[KEY address user].delegatedPropositionBalance uint72 balance
-    (uint72 old_balance) STORAGE {
-        sumDelegatedProposition = sumDelegatedProposition + to_mathint(balance) - to_mathint(old_balance);
-    }
-
-// try to rewrite using power.spec in aave-tokenv2 customer code
-hook Sstore _balances[KEY address user].balance uint104 balance
-    (uint104 old_balance) STORAGE {
-        sumBalances = sumBalances + to_mathint(balance) - to_mathint(old_balance);
-    }
-
-invariant sumDelegatedPropositionCorrectness() sumDelegatedProposition <= sumBalances { 
-  // fails
-  preserved transfer(address to, uint256 amount) with (env e)
-         {
-            require(balanceOf(e.msg.sender) + balanceOf(to)) < totalSupply();
-         }
-   preserved transferFrom(address from, address to, uint256 amount) with (env e)
-        {
-        require(balanceOf(from) + balanceOf(to)) < totalSupply();
-        }
-}
-
-invariant nonDelegatingBalance(address user)
-    !getDelegatingProposition(user) => balanceOf(user) == getDelegatedPropositionBalance(user) {
-        preserved transfer(address to, uint256 amount) with (env e)
-            {
-                require(getVotingDelegate(to) != user);
-            }
-    }
 
 
 rule totalSupplyCorrectness(method f) {
@@ -360,12 +278,6 @@ rule vpTransferWhenOnlyOneIsDelegating(address alice, address bob, address charl
     assert charliePowerBefore == charliePowerAfter;
 }
 
-/**
-before: 133160000000000
-amount: 30900000000001
-after: 102250000000000
-
-*/ 
 
 rule ppTransferWhenOnlyOneIsDelegating(address alice, address bob, address charlie, uint256 amount) {
     env e;
@@ -597,3 +509,22 @@ delta: 0x1001d1bf7ff = 1099999999999
 53690000000000 - 10000000000 + 30000000000 = 53710000000000
 
 */
+
+
+rule votingDelegateChanges(address alice, method f) {
+    env e;
+    calldataarg args;
+
+    address aliceDelegateBefore = getVotingDelegate(alice);
+
+    f(e, args);
+
+    address aliceDelegateAfter = getVotingDelegate(alice);
+
+    // only these four function may change the delegate of an address
+    assert aliceDelegateAfter != aliceDelegateBefore =>
+        f.selector == delegate(address).selector || 
+        f.selector == delegateByType(address,uint8).selector ||
+        f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
+        f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector;
+}
