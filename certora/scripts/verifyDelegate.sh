@@ -4,10 +4,11 @@ then
 fi
 
 certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3 \
-    --verify AaveTokenV3:certora/specs/setup.spec \
+    --verify AaveTokenV3:certora/specs/delegate.spec \
     $RULE \
     --solc solc8.13 \
     --optimistic_loop \
     --send_only \
     --staging \
-    --msg "AaveTokenV3:setup.spec $1"
+    --msg "AaveTokenV3:bgdSpec.spec $1"
+ 

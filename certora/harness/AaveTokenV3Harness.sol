@@ -6,6 +6,12 @@ import {IGovernancePowerDelegationToken} from '../../src/interfaces/IGovernanceP
 import {BaseAaveTokenV2} from './BaseAaveTokenV2Harness.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
+  
+  // Harness
+  uint256 public totalDelegatedPropositionBalance;
+  uint256 public totalDelegatedVotingBalance;
+  // End Harness
+
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
@@ -165,7 +171,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint104 impactOnDelegationAfter,
     address delegatee,
     GovernancePowerType delegationType
-  ) public { // public instead of internal for testing a particular condition in this function
+  ) internal {
     if (delegatee == address(0)) return;
     if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
@@ -173,16 +179,23 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
     uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
 
+    uint72 temp;
     if (delegationType == GovernancePowerType.VOTING) {
+       temp = _balances[delegatee].delegatedVotingBalance;
       _balances[delegatee].delegatedVotingBalance =
         _balances[delegatee].delegatedVotingBalance -
         impactOnDelegationBefore72 +
         impactOnDelegationAfter72;
+      totalDelegatedVotingBalance = totalDelegatedVotingBalance - temp + 
+        _balances[delegatee].delegatedVotingBalance;
     } else {
+      temp = _balances[delegatee].delegatedPropositionBalance;
       _balances[delegatee].delegatedPropositionBalance =
         _balances[delegatee].delegatedPropositionBalance -
         impactOnDelegationBefore72 +
         impactOnDelegationAfter72;
+      totalDelegatedPropositionBalance = totalDelegatedPropositionBalance - temp + 
+        _balances[delegatee].delegatedPropositionBalance;
     }
   }
 
@@ -388,14 +401,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   /** 
     Harness section - replace struct reads and writes with function calls
    */
-
-//   struct DelegationAwareBalance {
-//     uint104 balance;
-//     uint72 delegatedPropositionBalance;
-//     uint72 delegatedVotingBalance;
-//     bool delegatingProposition;
-//     bool delegatingVoting;
-//   }
 
 
    function getBalance(address user) view public returns (uint104) {

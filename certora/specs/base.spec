@@ -9,7 +9,8 @@ methods {
     permit(address,address,uint256,uint256,uint8,bytes32,bytes32)
 
     delegate(address delegatee)
-    metaDelegate(address, address, uint256, uint8, bytes32, bytes32)
+    metaDelegate(address,address,uint256,uint8,bytes32,bytes32)
+    metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32)
     getPowerCurrent(address user, uint8 delegationType) returns (uint256) envfree
 
     getBalance(address user) returns (uint104) envfree
