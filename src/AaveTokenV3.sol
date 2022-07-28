@@ -6,14 +6,12 @@ import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDele
 import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
-
-
   mapping(address => address) internal _votingDelegateeV2;
   mapping(address => address) internal _propositionDelegateeV2;
 
-  // @dev we assume that for the governance system 18 decimals of precision is not needed,
+  /// @dev we assume that for the governance system 18 decimals of precision is not needed,
   // by this constant we reduce it by 10, to 8 decimals
-  uint256 public constant DELEGATOR_POWER_SCALE_FACTOR = 1e10;
+  uint256 public constant POWER_SCALE_FACTOR = 1e10;
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
     keccak256(
@@ -149,35 +147,42 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   }
 
   /**
-   * @dev Changing one of delegated governance powers of delegatee depending on the delegator balance change
-   * @param delegatorBalanceBefore delegator balance before operation
-   * @param delegatorBalanceAfter delegator balance after operation
+   * @dev Modifies the delegated power of a `delegatee` account by type (VOTING, PROPOSITION).
+   * Passing the impact on the delegation of `delegatee` account before and after to reduce conditionals and not lose
+   * any precision.
+   * @param impactOnDelegationBefore how much impact a balance of another account had over the delegation of a `delegatee`
+   * before an action.
+   * For example, if the action is a delegation from one account to another, the impact before the action will be 0.
+   * @param impactOnDelegationAfter how much impact a balance of another account will have  over the delegation of a `delegatee`
+   * after an action.
+   * For example, if the action is a delegation from one account to another, the impact after the action will be the whole balance
+   * of the account changing the delegatee.
    * @param delegatee the user whom delegated governance power will be changed
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
   function _governancePowerTransferByType(
-    uint104 delegatorBalanceBefore,
-    uint104 delegatorBalanceAfter,
+    uint104 impactOnDelegationBefore,
+    uint104 impactOnDelegationAfter,
     address delegatee,
     GovernancePowerType delegationType
   ) internal {
     if (delegatee == address(0)) return;
-    if (delegatorBalanceBefore == delegatorBalanceAfter) return;
+    if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
-    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by DELEGATOR_POWER_SCALE_FACTOR
-    uint72 delegatorBalanceBefore72 = uint72(delegatorBalanceBefore / DELEGATOR_POWER_SCALE_FACTOR);
-    uint72 delegatorBalanceAfter72 = uint72(delegatorBalanceAfter / DELEGATOR_POWER_SCALE_FACTOR);
+    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
+    uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
+    uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
 
     if (delegationType == GovernancePowerType.VOTING) {
       _balances[delegatee].delegatedVotingBalance =
         _balances[delegatee].delegatedVotingBalance -
-        delegatorBalanceBefore72 +
-        delegatorBalanceAfter72;
+        impactOnDelegationBefore72 +
+        impactOnDelegationAfter72;
     } else {
       _balances[delegatee].delegatedPropositionBalance =
         _balances[delegatee].delegatedPropositionBalance -
-        delegatorBalanceBefore72 +
-        delegatorBalanceAfter72;
+        impactOnDelegationBefore72 +
+        impactOnDelegationAfter72;
     }
   }
 
@@ -229,14 +234,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
           GovernancePowerType.VOTING
         );
         _governancePowerTransferByType(
-          toUserState.balance,
           toBalanceBefore,
+          toUserState.balance,
           _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
           GovernancePowerType.PROPOSITION
         );
@@ -254,7 +259,7 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
     GovernancePowerType delegationType
   ) internal pure returns (uint256) {
     return
-      DELEGATOR_POWER_SCALE_FACTOR *
+      POWER_SCALE_FACTOR *
       (
         delegationType == GovernancePowerType.VOTING
           ? userState.delegatedVotingBalance
