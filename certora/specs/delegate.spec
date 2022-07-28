@@ -706,3 +706,4 @@ rule delegationTypeIndependence(address who, method f) filtered { f -> !f.isView
 		f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector
 	), "one delegatee type stays the same, unless delegate or delegateBySig was called";
 }
+
