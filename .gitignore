@@ -4,3 +4,5 @@ out/
 .certora_config/
 .last_confs/
 .certora_*
+node_modules/
+.env
