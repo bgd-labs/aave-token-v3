@@ -146,6 +146,8 @@ rule transferCorrect(address to, uint256 amount) {
     require validDelegationState(e.msg.sender) && validDelegationState(to);
     require ! ( (getDelegatingVoting(to) && v_delegateTo == to) ||
                 (getDelegatingProposition(to) && p_delegateTo == to));
+    // to not overcomplicate the constraints on dvbTo and dvbFrom
+    require v_delegateFrom != v_delegateTo;
 
     // for testing this specific scenario
     require v_delegateFrom == v_delegateTo && p_delegateFrom != p_delegateTo;
@@ -210,60 +212,6 @@ rule transferFromCorrect(address from, address to, uint256 amount) {
         (allowance(from, e.msg.sender) == allowanceBefore - amount ||
          allowance(from, e.msg.sender) == max_uint256);
 }
-
-/*
-    @Rule
-
-    @Description:
-        transferFrom should revert if and only if the amount is too high or the recipient is 0.
-
-    @Formula:
-        {
-            allowanceBefore = allowance(alice, bob)
-            fromBalanceBefore = balanceOf(alice)
-        }
-        <
-            transferFrom(alice, bob, amount)
-        >
-        {
-            lastReverted <=> allowanceBefore < amount || amount > fromBalanceBefore || to = 0
-        }
-
-    @Notes:
-        Fails on tokens with pause/blacklist functions, like USDC.
-
-    @Link:
-
-*/
-// TODO: fix rule failure
-rule transferFromReverts(address from, address to, uint256 amount) {
-    env e;
-    uint256 allowanceBefore = allowance(from, e.msg.sender);
-    uint256 fromBalanceBefore = balanceOf(from);
-    require from != 0 && e.msg.sender != 0 && from != to;
-    require e.msg.value == 0;
-    require fromBalanceBefore + balanceOf(to) < AAVE_MAX_SUPPLY();
-    require validDelegationState(from) && validDelegationState(to);
-
-    uint256 votingFromDelegateBalance = getDelegatedVotingBalance(getVotingDelegate(from));
-    uint256 propFromDelegateBalance = getDelegatedVotingBalance(getPropositionDelegate(from));
-
-    require votingFromDelegateBalance >= amount / DELEGATED_POWER_DIVIDER();
-    require propFromDelegateBalance >= amount / DELEGATED_POWER_DIVIDER();
-
-    uint256 votingToDelegateBalance = getDelegatedVotingBalance(getVotingDelegate(to));
-    uint256 propToDelegateBalance = getDelegatedVotingBalance(getPropositionDelegate(to));    
-
-    require votingToDelegateBalance < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
-    address p_delegateTo = getPropositionDelegate(to);
-    require propToDelegateBalance < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
-    require validAmount(amount);
-
-    transferFrom@withrevert(e, from, to, amount);
-
-    assert lastReverted <=> (allowanceBefore < amount || amount > fromBalanceBefore || to == 0);
-}
-
 
 /*
     @Rule

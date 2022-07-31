@@ -3,11 +3,12 @@ then
     RULE="--rule $1"
 fi
 
-certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3 \
-    --verify AaveTokenV3:certora/specs/general.spec \
+certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3Harness \
+    --verify AaveTokenV3Harness:certora/specs/general.spec \
     $RULE \
     --solc solc8.13 \
     --optimistic_loop \
+    --settings -smt_bitVectorTheory=true \
     --send_only \
     --staging \
     --msg "AaveTokenV3:general.spec $1"
