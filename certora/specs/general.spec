@@ -13,6 +13,40 @@ ghost mathint sumBalances {
     init_state axiom sumBalances == 0;
 }
 
+
+/*
+    @Rule
+
+    @Description:
+        User's delegation flag is switched on iff user is delegating to an address
+        other than his own own or 0
+
+    @Notes:
+
+
+    @Link:
+
+*/
+invariant delegateCorrectness(address user)
+    (getVotingDelegate(user) == user || getVotingDelegate(user) == 0) <=> !getDelegatingVoting(user)
+    &&
+    (getPropositionDelegate(user) == user || getPropositionDelegate(user) == 0) <=> !getDelegatingProposition(user)
+
+/*
+
+Invariant that proves sum of all balances is equal to sum of delegated and 
+undelegated balances.
+
+1. Ghost to track delegation state of each acc
+2. Ghost to track delegated balances sum
+3. Ghost to track undelegated balances sum
+4. On each write to balance, check the ghost for delegation state and update either non deleg or deleg
+5. On each write to delegation flag, move the balance from deleg to non deleg or the other way around
+
+*/
+
+
+
 /*
   update proposition balance on each store
  */
@@ -39,9 +73,6 @@ ghost mathint sumBalances {
 
 
 // MUST: --bitwise operation
-
-invariant delegateCorrectness(address user)
-    (getVotingDelegate(user) == user || getVotingDelegate(user) == 0) => !getDelegatingVoting(user) 
 
 
 // invariant nonDelegatingBalance(address user)
