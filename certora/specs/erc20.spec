@@ -5,6 +5,8 @@ function doesntChangeBalance(method f) returns bool {
         f.selector != transferFrom(address,address,uint256).selector;
 }
 
+    
+
 /*
     @Rule
 
@@ -110,19 +112,43 @@ rule noFeeOnTransfer(address bob, uint256 amount) {
     @Link:
 
 */
+
+
+// for this rule need to prove that delegatedBalance of a delegate is >= any delegator balance
+
+// what if v_delegateFrom == v_delegateTo?
+
 rule transferCorrect(address to, uint256 amount) {
     env e;
     require e.msg.value == 0 && e.msg.sender != 0;
     uint256 fromBalanceBefore = balanceOf(e.msg.sender);
     uint256 toBalanceBefore = balanceOf(to);
-    require fromBalanceBefore + toBalanceBefore < AAVE_MAX_SUPPLY();
+    require fromBalanceBefore + toBalanceBefore < AAVE_MAX_SUPPLY() / 100;
     
+    // proven elsewhere
     address v_delegateTo = getVotingDelegate(to);
-    require getDelegatedVotingBalance(v_delegateTo) < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
+    mathint dvbTo = getDelegatedVotingBalance(v_delegateTo);
+    require dvbTo >= balanceOf(to) / DELEGATED_POWER_DIVIDER() && 
+        dvbTo < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
     address p_delegateTo = getPropositionDelegate(to);
-    require getDelegatedPropositionBalance(p_delegateTo) < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
+    mathint pvbTo = getDelegatedPropositionBalance(p_delegateTo);
+    require pvbTo >= balanceOf(to) / DELEGATED_POWER_DIVIDER() && 
+        pvbTo < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
+
+    // proven elsewhere
+    address v_delegateFrom = getVotingDelegate(e.msg.sender);
+    address p_delegateFrom = getPropositionDelegate(e.msg.sender);
+    mathint dvbFrom = getDelegatedVotingBalance(v_delegateFrom);
+    mathint pvbFrom = getDelegatedPropositionBalance(p_delegateFrom);
+    require dvbFrom >= balanceOf(e.msg.sender) / DELEGATED_POWER_DIVIDER();
+    require pvbFrom >= balanceOf(e.msg.sender) / DELEGATED_POWER_DIVIDER();
 
     require validDelegationState(e.msg.sender) && validDelegationState(to);
+    require ! ( (getDelegatingVoting(to) && v_delegateTo == to) ||
+                (getDelegatingProposition(to) && p_delegateTo == to));
+
+    // for testing this specific scenario
+    require v_delegateFrom == v_delegateTo && p_delegateFrom != p_delegateTo;
 
     transfer@withrevert(e, to, amount);
     bool reverted = lastReverted;
