@@ -1,9 +1,27 @@
 import "base.spec"
 
+
 // methods {
 //     totalDelegatedVotingBalance() returns (uint256) envfree
 //     totalDelegatedPropositionBalance() returns (uint256) envfree
 // }
+
+//   enum DelegationState {
+//     NO_DELEGATION,
+//     VOTING_DELEGATED,
+//     PROPOSITION_DELEGATED,
+//     FULL_POWER_DELEGATED
+//   }
+
+definition NO_DELEGATION() returns uint = 0;
+definition VOTING_DELEGATED() returns uint = 1;
+definition PROPOSITION_DELEGATED() returns uint = 2;
+definition FULL_POWER_DELEGATED() returns uint = 3;
+
+// 1 byte
+definition DelegationState(uint256 packed) returns uint256 = 
+    (packed & 0xff);
+
 
 ghost mathint sumDelegatedProposition {
     init_state axiom sumDelegatedProposition == 0;
@@ -40,12 +58,71 @@ undelegated balances.
 1. Ghost to track delegation state of each acc
 2. Ghost to track delegated balances sum
 3. Ghost to track undelegated balances sum
-4. On each write to balance, check the ghost for delegation state and update either non deleg or deleg
-5. On each write to delegation flag, move the balance from deleg to non deleg or the other way around
-
+4. Ghost to track balances of each account
+5. On each write to balance, check the ghost for delegation state and update either non deleg or deleg
+6. On each write to delegation flag, move the balance from deleg to non deleg or the other way around
 */
 
+// 1.
+ghost mapping(address => bool) isDelegatingVoting {
+    init_state axiom forall address a. isDelegatingVoting[a] == false;
+}
 
+// 2.
+ghost mathint sumDelegatedBalances {
+    init_state axiom sumDelegatedBalances == 0;
+}
+
+// 3.
+ghost mathint sumUndelegatedBalances {
+    init_state axiom sumUndelegatedBalances == 0;
+}
+
+// 4.
+ghost mapping(address => uint104) balances {
+    init_state axiom forall address a. balances[a] == 0;
+}
+
+hook Sstore _balances[KEY address user].(offset 0) uint256 packed (uint64 old_packed) STORAGE {
+    uint256 old_state = DelegationState(packed);
+    uint256 new_state = DelegationState(packed);
+    if ((old_state == NO_DELEGATION() || old_state == PROPOSITION_DELEGATED()) &&
+        (new_state == VOTING_DELEGATED() || new_state == FULL_POWER_DELEGATED())) {
+            sumUndelegatedBalances = sumUndelegatedBalances - balances[user];
+        }
+    if ((old_state == VOTING_DELEGATED() || old_state == FULL_POWER_DELEGATED()) &&
+        (new_state == NO_DELEGATION() || new_state == PROPOSITION_DELEGATED())) {
+            sumDelegatedBalances = sumDelegatedBalances - balances[user];
+        }
+}
+
+
+hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_balance) STORAGE {
+    balances[user] = balances[user] - old_balance + balance;
+    if (isDelegatingVoting[user]) {
+        sumDelegatedBalances = sumDelegatedBalances + to_mathint(balance) - to_mathint(old_balance);
+    } else {
+        sumUndelegatedBalances = sumUndelegatedBalances + to_mathint(balance) - to_mathint(old_balance);
+    }
+}
+
+
+// hook Sstore _balances[KEY address user].delegationState
+//     ds state (ds old_state) STORAGE {
+//         if ((old_state == NO_DELEGATION() || old_state == PROPOSITION_DELEGATED()) &&
+//             (state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED())) {
+//                 sumUndelegatedBalances = sumUndelegatedBalances - balances[user];
+//             }
+//         if ((old_state == VOTING_DELEGATED() || old_state == FULL_POWER_DELEGATED()) &&
+//             (state == NO_DELEGATION() || state == PROPOSITION_DELEGATED())) {
+//                 sumDelegatedBalances = sumDelegatedBalances - balances[user];
+//             }
+//     }
+
+invariant general() sumDelegatedBalances + sumUndelegatedBalances == totalSupply()
+
+
+// hook Sstore
 
 /*
   update proposition balance on each store
