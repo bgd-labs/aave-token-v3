@@ -1,23 +1,144 @@
+/*
+    This is a specification file for the verification of delegation invariants
+    of AaveTokenV3.sol smart contract using the Certora prover. 
+    For more information, visit: https://www.certora.com/
+
+    This file is run with scripts/verifyGeneral.sh
+    On a version with some minimal code modifications 
+    AaveTokenV3HarnessStorage.sol
+*/
+
 import "base.spec"
 
-definition NO_DELEGATION() returns uint = 0;
-definition VOTING_DELEGATED() returns uint = 1;
-definition PROPOSITION_DELEGATED() returns uint = 2;
-definition FULL_POWER_DELEGATED() returns uint = 3;
+/**
 
-// 1 byte
-definition DelegationState(uint256 packed) returns uint256 = 
-    (packed & 0xff);
+    Definitions of delegation states
+
+*/
+definition NO_DELEGATION() returns uint8 = 0;
+definition VOTING_DELEGATED() returns uint8 = 1;
+definition PROPOSITION_DELEGATED() returns uint8 = 2;
+definition FULL_POWER_DELEGATED() returns uint8 = 3;
+definition DELEGATING_VOTING(uint8 state) returns bool = 
+    state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED();
+definition DELEGATING_PROPOSITION(uint8 state) returns bool =
+    state == PROPOSITION_DELEGATED() || state == FULL_POWER_DELEGATED();
 
 
-ghost mathint sumDelegatedProposition {
-    init_state axiom sumDelegatedProposition == 0;
-}
+/**
 
+    Ghosts
+
+*/
+
+// sum of all user balances
 ghost mathint sumBalances {
     init_state axiom sumBalances == 0;
 }
 
+// tracking voting delegation status for each address
+ghost mapping(address => bool) isDelegatingVoting {
+    init_state axiom forall address a. isDelegatingVoting[a] == false;
+}
+
+// tracking voting delegation status for each address
+ghost mapping(address => bool) isDelegatingProposition {
+    init_state axiom forall address a. isDelegatingProposition[a] == false;
+}
+
+// sum of all voting delegated balances
+ghost mathint sumDelegatedBalancesV {
+    init_state axiom sumDelegatedBalancesV == 0;
+}
+
+// sum of all proposition undelegated balances
+ghost mathint sumUndelegatedBalancesV {
+    init_state axiom sumUndelegatedBalancesV == 0;
+}
+
+// sum of all proposition delegated balances
+ghost mathint sumDelegatedBalancesP {
+    init_state axiom sumDelegatedBalancesP == 0;
+}
+
+// sum of all voting undelegated balances
+ghost mathint sumUndelegatedBalancesP {
+    init_state axiom sumUndelegatedBalancesP == 0;
+}
+
+// token balances of each address
+ghost mapping(address => uint104) balances {
+    init_state axiom forall address a. balances[a] == 0;
+}
+
+
+/**
+
+    Hooks
+
+*/
+
+
+
+/**
+
+    This hook updates the sum of delegated and undelegated balances on each change of delegation state.
+    If the user moves from not delegating to delegating, their balance is moved from undelegated to delegating,
+    and etc.
+
+*/
+hook Sstore _balances[KEY address user].delegationState uint8 new_state (uint8 old_state) STORAGE {
+    
+    bool willDelegateP = !DELEGATING_PROPOSITION(old_state) && DELEGATING_PROPOSITION(new_state);
+    bool wasDelegatingP = DELEGATING_PROPOSITION(old_state) && !DELEGATING_PROPOSITION(new_state);
+    sumUndelegatedBalancesP = willDelegateP ? (sumUndelegatedBalancesP - balances[user]) : sumUndelegatedBalancesP;
+    sumUndelegatedBalancesP = wasDelegatingP ? (sumUndelegatedBalancesP + balances[user]) : sumUndelegatedBalancesP;
+    sumDelegatedBalancesP = willDelegateP ? (sumDelegatedBalancesP + balances[user]) : sumDelegatedBalancesP;
+    sumDelegatedBalancesP = wasDelegatingP ? (sumDelegatedBalancesP - balances[user]) : sumDelegatedBalancesP;
+    
+    // change the delegating state only if a change is stored
+
+    isDelegatingProposition[user] = new_state == old_state
+        ? isDelegatingProposition[user]
+        : new_state == PROPOSITION_DELEGATED() || new_state == FULL_POWER_DELEGATED();
+
+    
+    bool willDelegateV = !DELEGATING_VOTING(old_state) && DELEGATING_VOTING(new_state);
+    bool wasDelegatingV = DELEGATING_VOTING(old_state) && !DELEGATING_VOTING(new_state);
+    sumUndelegatedBalancesV = willDelegateV ? (sumUndelegatedBalancesV - balances[user]) : sumUndelegatedBalancesV;
+    sumUndelegatedBalancesV = wasDelegatingV ? (sumUndelegatedBalancesV + balances[user]) : sumUndelegatedBalancesV;
+    sumDelegatedBalancesV = willDelegateV ? (sumDelegatedBalancesV + balances[user]) : sumDelegatedBalancesV;
+    sumDelegatedBalancesV = wasDelegatingV ? (sumDelegatedBalancesV - balances[user]) : sumDelegatedBalancesV;
+    
+    // change the delegating state only if a change is stored
+
+    isDelegatingVoting[user] = new_state == old_state
+        ? isDelegatingVoting[user]
+        : new_state == VOTING_DELEGATED() || new_state == FULL_POWER_DELEGATED();
+}
+
+
+/**
+
+    This hook updates the sum of delegated and undelegated balances on each change of user balance.
+    Depending on the delegation state, either the delegated or the undelegated balance get updated.
+
+*/
+hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_balance) STORAGE {
+    balances[user] = balances[user] - old_balance + balance;
+    sumDelegatedBalancesV = isDelegatingVoting[user] 
+        ? sumDelegatedBalancesV + to_mathint(balance) - to_mathint(old_balance)
+        : sumDelegatedBalancesV;
+    sumUndelegatedBalancesV = !isDelegatingVoting[user] 
+        ? sumUndelegatedBalancesV + to_mathint(balance) - to_mathint(old_balance)
+        : sumUndelegatedBalancesV;
+    sumDelegatedBalancesP = isDelegatingProposition[user] 
+        ? sumDelegatedBalancesP + to_mathint(balance) - to_mathint(old_balance)
+        : sumDelegatedBalancesP;
+    sumUndelegatedBalancesP = !isDelegatingProposition[user] 
+        ? sumUndelegatedBalancesP + to_mathint(balance) - to_mathint(old_balance)
+        : sumUndelegatedBalancesP;
+}
 
 /*
     @Rule
@@ -36,66 +157,70 @@ invariant delegateCorrectness(address user)
     ((getVotingDelegate(user) == user || getVotingDelegate(user) == 0) <=> !getDelegatingVoting(user))
     &&
     ((getPropositionDelegate(user) == user || getPropositionDelegate(user) == 0) <=> !getDelegatingProposition(user))
+    {
+        preserved {
+            require getDelegationState(user) <= FULL_POWER_DELEGATED();
+        }
+    }
 
 /*
+    @Rule
 
-Invariant that proves sum of all balances is equal to sum of delegated and 
-undelegated balances.
+    @Description:
+        Sum of delegated voting balances and undelegated balances is equal to total supply
 
-1. Ghost to track delegation state of each acc
-2. Ghost to track delegated balances sum
-3. Ghost to track undelegated balances sum
-4. Ghost to track balances of each account
-5. On each write to balance, check the ghost for delegation state and update either non deleg or deleg
-6. On each write to delegation flag, move the balance from deleg to non deleg or the other way around
+    @Notes:
+
+
+    @Link:
+
 */
+invariant sumOfVBalancesCorrectness() sumDelegatedBalancesV + sumUndelegatedBalancesV == totalSupply()
 
-// 1.
-ghost mapping(address => bool) isDelegatingVoting {
-    init_state axiom forall address a. isDelegatingVoting[a] == false;
+/*
+    @Rule
+
+    @Description:
+        Sum of delegated proposition balances and undelegated balances is equal to total supply
+
+    @Notes:
+
+
+    @Link:
+
+*/
+invariant sumOfPBalancesCorrectness() sumDelegatedBalancesP + sumUndelegatedBalancesP == totalSupply()
+
+
+/*
+    @Rule
+
+    @Description:
+       Transfers don't change voting delegation state
+
+    @Notes:
+
+
+    @Link:
+
+*/
+rule testTransfer() {
+    env e;
+    address from; address to;
+    uint amount;
+
+    uint8 stateFromBefore = getDelegationState(from);
+    uint8 stateToBefore = getDelegationState(to);
+    require stateFromBefore <= FULL_POWER_DELEGATED() && stateToBefore <= FULL_POWER_DELEGATED();
+    bool testFromBefore = isDelegatingVoting[from];
+    bool testToBefore = isDelegatingVoting[to];
+
+    transferFrom(e, from, to, amount);
+
+    uint8 stateFromAfter = getDelegationState(from);
+    uint8 stateToAfter = getDelegationState(to);
+    bool testFromAfter = isDelegatingVoting[from];
+    bool testToAfter = isDelegatingVoting[to];
+
+    assert testFromBefore == testFromAfter && testToBefore == testToAfter;
 }
-
-// 2.
-ghost mathint sumDelegatedBalances {
-    init_state axiom sumDelegatedBalances == 0;
-}
-
-// 3.
-ghost mathint sumUndelegatedBalances {
-    init_state axiom sumUndelegatedBalances == 0;
-}
-
-// 4.
-ghost mapping(address => uint104) balances {
-    init_state axiom forall address a. balances[a] == 0;
-}
-
-hook Sstore _balances[KEY address user].(offset 0) uint256 packed (uint256 old_packed) STORAGE {
-    uint256 old_state = DelegationState(packed);
-    uint256 new_state = DelegationState(packed);
-    bool willDelegate = ((old_state == NO_DELEGATION() || old_state == PROPOSITION_DELEGATED()) &&
-        (new_state == VOTING_DELEGATED() || new_state == FULL_POWER_DELEGATED()));
-    bool wasDelegating = ((old_state == VOTING_DELEGATED() || old_state == FULL_POWER_DELEGATED()) &&
-        (new_state == NO_DELEGATION() || new_state == PROPOSITION_DELEGATED()));
-    sumUndelegatedBalances = willDelegate ? sumUndelegatedBalances - balances[user] : sumUndelegatedBalances;
-    sumUndelegatedBalances = wasDelegating ? sumUndelegatedBalances + balances[user] : sumUndelegatedBalances;
-    sumDelegatedBalances = willDelegate ? sumDelegatedBalances + balances[user] : sumDelegatedBalances;
-    sumDelegatedBalances = wasDelegating ? sumDelegatedBalances - balances[user] : sumDelegatedBalances;
-}
-
-
-hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_balance) STORAGE {
-    balances[user] = balances[user] - old_balance + balance;
-    sumDelegatedBalances = isDelegatingVoting[user] 
-        ? sumDelegatedBalances + to_mathint(balance) - to_mathint(old_balance)
-        : sumDelegatedBalances;
-    sumUndelegatedBalances = !isDelegatingVoting[user] 
-        ? sumUndelegatedBalances + to_mathint(balance) - to_mathint(old_balance)
-        : sumUndelegatedBalances;
-}
-
-invariant sumOfBalancesCorrectness() sumDelegatedBalances + sumUndelegatedBalances == totalSupply()
-
-
-// sum of power for two addresses involved in f, doesn't change.
-// rule sumPowerCurrent(method f)

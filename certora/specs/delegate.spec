@@ -1,11 +1,11 @@
 
 /*
-    This is a specification file for the verification of verification
+    This is a specification file for the verification of delegation
     features of AaveTokenV3.sol smart contract using the Certora prover. 
     For more information, visit: https://www.certora.com/
 
     This file is run with scripts/verifyDelegate.sh
-    On a version with some small code modifications AaveTokenV3Harness.sol
+    On AaveTokenV3Harness.sol
 
 */
 

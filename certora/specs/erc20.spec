@@ -1,3 +1,12 @@
+/*
+    This is a specification file for the verification of general ERC20
+    features of AaveTokenV3.sol smart contract using the Certora prover. 
+    For more information, visit: https://www.certora.com/
+
+    This file is run with scripts/erc20.sh
+    On the token harness AaveTokenV3Harness.sol
+
+*/
 import "base.spec"
 
 function doesntChangeBalance(method f) returns bool {
