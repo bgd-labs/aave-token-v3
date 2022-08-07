@@ -11,4 +11,5 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3Harness \
     --send_only \
     --staging \
     --msg "AaveTokenV3Harness:delegate.spec $1"
+# --sanity
  

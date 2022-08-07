@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: MIT
+
+/**
+
+  This is an extension of the AaveTokenV3 with added getters on the _balances fields
+
+ */
+
 pragma solidity ^0.8.0;
 
 import {AaveTokenV3} from "../../src/AaveTokenV3.sol";

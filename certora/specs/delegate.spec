@@ -707,3 +707,28 @@ rule delegationTypeIndependence(address who, method f) filtered { f -> !f.isView
 	), "one delegatee type stays the same, unless delegate or delegateBySig was called";
 }
 
+rule cantDelegateTwice(address _delegate) {
+    env e;
+
+    address delegateBefore = getVotingDelegate(e.msg.sender);
+    require delegateBefore != _delegate && delegateBefore != e.msg.sender && delegateBefore != 0;
+    require _delegate != e.msg.sender && _delegate != 0 && e.msg.sender != 0;
+    require getDelegationState(e.msg.sender) == FULL_POWER_DELEGATED();
+
+    uint256 votingPowerBefore = getPowerCurrent(_delegate, VOTING_POWER());
+    uint256 propPowerBefore = getPowerCurrent(_delegate, PROPOSITION_POWER());
+    
+    delegate(e, _delegate);
+    
+    uint256 votingPowerAfter = getPowerCurrent(_delegate, VOTING_POWER());
+    uint256 propPowerAfter = getPowerCurrent(_delegate, PROPOSITION_POWER());
+
+    delegate(e, _delegate);
+
+    uint256 votingPowerAfter2 = getPowerCurrent(_delegate, VOTING_POWER());
+    uint256 propPowerAfter2 = getPowerCurrent(_delegate, PROPOSITION_POWER());
+
+    assert votingPowerAfter == votingPowerBefore + normalize(balanceOf(e.msg.sender));
+    assert propPowerAfter == propPowerBefore + normalize(balanceOf(e.msg.sender));
+    assert votingPowerAfter2 == votingPowerAfter && propPowerAfter2 == propPowerAfter;
+}

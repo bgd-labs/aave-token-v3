@@ -10,20 +10,6 @@
 
 import "base.spec"
 
-/**
-
-    Definitions of delegation states
-
-*/
-definition NO_DELEGATION() returns uint8 = 0;
-definition VOTING_DELEGATED() returns uint8 = 1;
-definition PROPOSITION_DELEGATED() returns uint8 = 2;
-definition FULL_POWER_DELEGATED() returns uint8 = 3;
-definition DELEGATING_VOTING(uint8 state) returns bool = 
-    state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED();
-definition DELEGATING_PROPOSITION(uint8 state) returns bool =
-    state == PROPOSITION_DELEGATED() || state == FULL_POWER_DELEGATED();
-
 
 /**
 
@@ -71,13 +57,11 @@ ghost mapping(address => uint104) balances {
     init_state axiom forall address a. balances[a] == 0;
 }
 
-
 /**
 
     Hooks
 
 */
-
 
 
 /**
@@ -91,6 +75,8 @@ hook Sstore _balances[KEY address user].delegationState uint8 new_state (uint8 o
     
     bool willDelegateP = !DELEGATING_PROPOSITION(old_state) && DELEGATING_PROPOSITION(new_state);
     bool wasDelegatingP = DELEGATING_PROPOSITION(old_state) && !DELEGATING_PROPOSITION(new_state);
+ 
+    // we cannot use if statements inside hooks, hence the ternary operator
     sumUndelegatedBalancesP = willDelegateP ? (sumUndelegatedBalancesP - balances[user]) : sumUndelegatedBalancesP;
     sumUndelegatedBalancesP = wasDelegatingP ? (sumUndelegatedBalancesP + balances[user]) : sumUndelegatedBalancesP;
     sumDelegatedBalancesP = willDelegateP ? (sumDelegatedBalancesP + balances[user]) : sumDelegatedBalancesP;
@@ -126,6 +112,7 @@ hook Sstore _balances[KEY address user].delegationState uint8 new_state (uint8 o
 */
 hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_balance) STORAGE {
     balances[user] = balances[user] - old_balance + balance;
+    // we cannot use if statements inside hooks, hence the ternary operator
     sumDelegatedBalancesV = isDelegatingVoting[user] 
         ? sumDelegatedBalancesV + to_mathint(balance) - to_mathint(old_balance)
         : sumDelegatedBalancesV;
@@ -138,7 +125,9 @@ hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_bal
     sumUndelegatedBalancesP = !isDelegatingProposition[user] 
         ? sumUndelegatedBalancesP + to_mathint(balance) - to_mathint(old_balance)
         : sumUndelegatedBalancesP;
+
 }
+
 
 /*
     @Rule
@@ -191,7 +180,6 @@ invariant sumOfVBalancesCorrectness() sumDelegatedBalancesV + sumUndelegatedBala
 */
 invariant sumOfPBalancesCorrectness() sumDelegatedBalancesP + sumUndelegatedBalancesP == totalSupply()
 
-
 /*
     @Rule
 
@@ -204,7 +192,7 @@ invariant sumOfPBalancesCorrectness() sumDelegatedBalancesP + sumUndelegatedBala
     @Link:
 
 */
-rule testTransfer() {
+rule transferDoesntChangeDelegationState() {
     env e;
     address from; address to;
     uint amount;

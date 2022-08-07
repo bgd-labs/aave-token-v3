@@ -1,3 +1,16 @@
+/*
+    This is a base spec file that includes methods declarations, definitions
+    and functions to be included in other spec. There are no rules in this file.
+    For more information, visit: https://www.certora.com/
+
+*/
+
+/**
+
+    Declaration of methods of the Aave token contract (and harness)
+
+*/ 
+
 methods {
     totalSupply()                         returns (uint256)   envfree
     balanceOf(address)                    returns (uint256)   envfree
@@ -27,6 +40,30 @@ definition VOTING_POWER() returns uint8 = 0;
 definition PROPOSITION_POWER() returns uint8 = 1;
 definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
 
+/**
+
+    Definitions of delegation states
+
+*/
+definition NO_DELEGATION() returns uint8 = 0;
+definition VOTING_DELEGATED() returns uint8 = 1;
+definition PROPOSITION_DELEGATED() returns uint8 = 2;
+definition FULL_POWER_DELEGATED() returns uint8 = 3;
+definition DELEGATING_VOTING(uint8 state) returns bool = 
+    state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED();
+definition DELEGATING_PROPOSITION(uint8 state) returns bool =
+    state == PROPOSITION_DELEGATED() || state == FULL_POWER_DELEGATED();
+
+definition AAVE_MAX_SUPPLY() returns uint256 = 16000000 * 10^18;
+definition SCALED_MAX_SUPPLY() returns uint256 = AAVE_MAX_SUPPLY() / DELEGATED_POWER_DIVIDER();
+
+
+/**
+
+    Functions
+
+*/
+
 function normalize(uint256 amount) returns uint256 {
     return to_uint256(amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
 }
@@ -38,6 +75,3 @@ function validDelegationState(address user) returns bool {
 function validAmount(uint256 amt) returns bool {
     return amt < AAVE_MAX_SUPPLY();
 }
-
-definition AAVE_MAX_SUPPLY() returns uint256 = 16000000 * 10^18;
-definition SCALED_MAX_SUPPLY() returns uint256 = AAVE_MAX_SUPPLY() / DELEGATED_POWER_DIVIDER();
