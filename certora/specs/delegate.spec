@@ -707,11 +707,24 @@ rule delegationTypeIndependence(address who, method f) filtered { f -> !f.isView
 	), "one delegatee type stays the same, unless delegate or delegateBySig was called";
 }
 
+/*
+    @Rule
+
+    @Description:
+        Verifies that delegating twice to the same delegate changes the delegate's
+        voting power only once.
+
+    @Note:
+
+    @Link:
+*/
 rule cantDelegateTwice(address _delegate) {
     env e;
 
-    address delegateBefore = getVotingDelegate(e.msg.sender);
-    require delegateBefore != _delegate && delegateBefore != e.msg.sender && delegateBefore != 0;
+    address delegateBeforeV = getVotingDelegate(e.msg.sender);
+    address delegateBeforeP = getPropositionDelegate(e.msg.sender);
+    require delegateBeforeV != _delegate && delegateBeforeV != e.msg.sender && delegateBeforeV != 0;
+    require delegateBeforeP != _delegate && delegateBeforeP != e.msg.sender && delegateBeforeP != 0;
     require _delegate != e.msg.sender && _delegate != 0 && e.msg.sender != 0;
     require getDelegationState(e.msg.sender) == FULL_POWER_DELEGATED();
 
