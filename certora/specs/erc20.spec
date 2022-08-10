@@ -158,11 +158,9 @@ rule transferCorrect(address to, uint256 amount) {
     require validDelegationState(e.msg.sender) && validDelegationState(to);
     require ! ( (getDelegatingVoting(to) && v_delegateTo == to) ||
                 (getDelegatingProposition(to) && p_delegateTo == to));
+    
     // to not overcomplicate the constraints on dvbTo and dvbFrom
-    require v_delegateFrom != v_delegateTo;
-
-    // for testing this specific scenario
-    require v_delegateFrom == v_delegateTo && p_delegateFrom != p_delegateTo;
+    require v_delegateFrom != v_delegateTo && p_delegateFrom != p_delegateTo;
 
     transfer@withrevert(e, to, amount);
     bool reverted = lastReverted;
