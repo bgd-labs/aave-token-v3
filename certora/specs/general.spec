@@ -6,6 +6,8 @@
     This file is run with scripts/verifyGeneral.sh
     On a version with some minimal code modifications 
     AaveTokenV3HarnessStorage.sol
+
+    Sanity check results: https://prover.certora.com/output/67509/8cee7c95432ede6b3f9f/?anonymousKey=78d297585a2b2edc38f6c513e0ce12df10e47b82
 */
 
 import "base.spec"

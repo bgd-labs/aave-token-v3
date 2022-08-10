@@ -6,6 +6,9 @@
     This file is run with scripts/erc20.sh
     On the token harness AaveTokenV3Harness.sol
 
+    Sanity run:
+    https://prover.certora.com/output/67509/fc50dbfcd1528d8549de/?anonymousKey=b3cf3650b69574655b0e4fc80a019677904a3377
+
 */
 import "base.spec"
 

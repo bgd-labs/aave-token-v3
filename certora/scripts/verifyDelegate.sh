@@ -9,7 +9,6 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3Harness \
     --solc solc8.13 \
     --optimistic_loop \
     --send_only \
-    --staging \
     --msg "AaveTokenV3Harness:delegate.spec $1"
 # --sanity
  

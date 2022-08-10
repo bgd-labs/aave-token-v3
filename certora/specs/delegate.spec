@@ -7,6 +7,8 @@
     This file is run with scripts/verifyDelegate.sh
     On AaveTokenV3Harness.sol
 
+    Sanity check results: https://prover.certora.com/output/67509/021f59de6995d82ecf18/?anonymousKey=84f18dc61532a37fabfd59655fe7fe43989f1a8e
+
 */
 
 import "base.spec"
