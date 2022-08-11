@@ -7,8 +7,7 @@
     On the token harness AaveTokenV3Harness.sol
 
     Sanity run:
-    https://prover.certora.com/output/67509/fc50dbfcd1528d8549de/?anonymousKey=b3cf3650b69574655b0e4fc80a019677904a3377
-
+    https://prover.certora.com/output/67509/a5d16a31a49b9c9a7b71/?anonymousKey=bd108549122fd97450428a26c4ed52458793b898
 */
 import "base.spec"
 
@@ -126,10 +125,6 @@ rule noFeeOnTransfer(address bob, uint256 amount) {
 */
 
 
-// for this rule need to prove that delegatedBalance of a delegate is >= any delegator balance
-
-// what if v_delegateFrom == v_delegateTo?
-
 rule transferCorrect(address to, uint256 amount) {
     env e;
     require e.msg.value == 0 && e.msg.sender != 0;
@@ -191,7 +186,7 @@ rule transferCorrect(address to, uint256 amount) {
         }
         <
             transferFrom(from, to, amount)
-        >tr
+        >
         {
             lastreverted => to = 0 || amount > balanceOf(from)
             !lastreverted => balanceOf(to) = balanceToBefore + amount &&
