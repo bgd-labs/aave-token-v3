@@ -384,4 +384,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
 
     emit DelegateChanged(delegator, delegatee, delegationType);
   }
+
+  /// @inheritdoc IGovernancePowerDelegationToken
+  function renounceDelegatorByType(address delegator, GovernancePowerType delegationType)
+    external
+    override
+  {
+    address delegatee = _getDelegateeByType(delegator, _balances[delegator], delegationType);
+    require(delegatee == msg.sender, 'INVALID_CALLER');
+    _delegateByType(delegator, delegator, delegationType);
+  }
 }
