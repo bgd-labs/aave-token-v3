@@ -58,7 +58,7 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     );
   }
 
-  function testRenounceDelegation() public {
+  function testRenounceDelegationType() public {
     uint256 currentVotingPower = AAVE_V3_TOKEN.getPowerCurrent(
       ECOSYSTEM_RESERVE,
       GovernancePowerType.VOTING
@@ -87,5 +87,72 @@ contract StorageTest is AaveTokenV3, AaveUtils {
       currentPropositionPower
     );
     assertEq(AAVE_V3_TOKEN.getPowerCurrent(EOA, GovernancePowerType.PROPOSITION), 0);
+  }
+
+  function testFailRenounceDelegationTypeNone() public {
+    vm.startPrank(EOA);
+    AAVE_V3_TOKEN.renounceDelegatorByType(ECOSYSTEM_RESERVE, GovernancePowerType.PROPOSITION);
+  }
+
+  function testRenounceDelegationAll() public {
+    uint256 currentVotingPower = AAVE_V3_TOKEN.getPowerCurrent(
+      ECOSYSTEM_RESERVE,
+      GovernancePowerType.VOTING
+    );
+    uint256 currentPropositionPower = AAVE_V3_TOKEN.getPowerCurrent(
+      ECOSYSTEM_RESERVE,
+      GovernancePowerType.PROPOSITION
+    );
+
+    vm.startPrank(ECOSYSTEM_RESERVE);
+    AAVE_V3_TOKEN.delegateByType(EOA, GovernancePowerType.VOTING);
+    AAVE_V3_TOKEN.delegateByType(EOA, GovernancePowerType.PROPOSITION);
+    vm.stopPrank();
+
+    vm.startPrank(EOA);
+    AAVE_V3_TOKEN.renounceDelegator(ECOSYSTEM_RESERVE);
+    assertEq(
+      AAVE_V3_TOKEN.getPowerCurrent(ECOSYSTEM_RESERVE, GovernancePowerType.VOTING),
+      currentVotingPower
+    );
+    assertEq(AAVE_V3_TOKEN.getPowerCurrent(EOA, GovernancePowerType.VOTING), 0);
+    assertEq(
+      AAVE_V3_TOKEN.getPowerCurrent(ECOSYSTEM_RESERVE, GovernancePowerType.PROPOSITION),
+      currentPropositionPower
+    );
+    assertEq(AAVE_V3_TOKEN.getPowerCurrent(EOA, GovernancePowerType.PROPOSITION), 0);
+  }
+
+  function testRenounceDelegationOne() public {
+    uint256 currentVotingPower = AAVE_V3_TOKEN.getPowerCurrent(
+      ECOSYSTEM_RESERVE,
+      GovernancePowerType.VOTING
+    );
+    uint256 currentPropositionPower = AAVE_V3_TOKEN.getPowerCurrent(
+      ECOSYSTEM_RESERVE,
+      GovernancePowerType.PROPOSITION
+    );
+
+    vm.startPrank(ECOSYSTEM_RESERVE);
+    AAVE_V3_TOKEN.delegateByType(EOA, GovernancePowerType.VOTING);
+    vm.stopPrank();
+
+    vm.startPrank(EOA);
+    AAVE_V3_TOKEN.renounceDelegator(ECOSYSTEM_RESERVE);
+    assertEq(
+      AAVE_V3_TOKEN.getPowerCurrent(ECOSYSTEM_RESERVE, GovernancePowerType.VOTING),
+      currentVotingPower
+    );
+    assertEq(AAVE_V3_TOKEN.getPowerCurrent(EOA, GovernancePowerType.VOTING), 0);
+    assertEq(
+      AAVE_V3_TOKEN.getPowerCurrent(ECOSYSTEM_RESERVE, GovernancePowerType.PROPOSITION),
+      currentPropositionPower
+    );
+    assertEq(AAVE_V3_TOKEN.getPowerCurrent(EOA, GovernancePowerType.PROPOSITION), 0);
+  }
+
+  function testFailRenounceDelegationNone() public {
+    vm.startPrank(EOA);
+    AAVE_V3_TOKEN.renounceDelegator(ECOSYSTEM_RESERVE);
   }
 }
