@@ -37,7 +37,7 @@ interface IGovernancePowerDelegationToken {
   function renounceDelegatorByType(address delegator, GovernancePowerType delegationType) external;
 
   /**
-   * @dev removes a specific delegator from a delegatee
+   * @dev removes a specific delegator from a delegatee as long as at least on type of power was delegated
    * @param delegator the user which delegated power to the caller
    **/
   function renounceDelegator(address delegator) external;
