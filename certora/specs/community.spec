@@ -1,3 +1,18 @@
+/*
+    This is a specification file for the verification of AaveTokenV3.sol 
+    smart contract using the Certora prover. The rules in this spec have been
+    contributed by the community. Individual attribution is given in the comments
+    to each rule.
+
+    For more information, visit: https://www.certora.com/
+
+    This file is run with scripts/verifyCommunity.sh
+    On AaveTokenV3Harness.sol
+
+    Run results: https://prover.certora.com/output/67509/d36b2357623beec546c1?anonymousKey=f6fb866df18e6bc9ed880806375e7861cde8274f
+
+*/
+
 import "base.spec"
 
 methods {
@@ -10,11 +25,29 @@ methods {
 
 definition ZERO_ADDRESS() returns address = 0;
 
-/**
+
+/*
+    @Rule
+
+    @Description:
     Integrity of permit function
     Successful permit function increases the nonce of owner by 1 and also changes the allowance of owner to spender
 
-    Written by parth-15
+    @Formula:
+    {
+        nonceBefore = getNonce(owner)
+    }
+    <
+        permit(owner, spender, value, deadline, v, r, s)
+    >
+    {
+        allowance(owner, spender) == value && getNonce(owner) == nonceBefore + 1
+    }
+
+    @Note:
+        Written by https://github.com/parth-15
+
+    @Link:
 */
 rule permitIntegrity() {
     env e;
@@ -41,84 +74,80 @@ rule permitIntegrity() {
     assert nonceAfter == nonceBefore + 1, "successful call to permit function increases nonce of owner by 1";
 }
 
-/**
-    The delegator can always revoke his voting power only by calling delegating functions 
 
-    Written by Elpacos
+/*
+    @Rule
 
-*/
-rule checkRevokingVotingPower(address someone, method f) {
-    env e;
-    calldataarg args;
+    @Description:
+        Address 0 has no voting or proposition power
 
-    //store voting delegating state before
-    bool delegatingStateBefore = getDelegatingVoting(someone);
-    //transacction
-    f(e, args);
-    //store voting delegating state after
-    bool delegatingStateAfter = getDelegatingVoting(someone);
+    @Formula:
+    {
+        getPowerCurrent(0, VOTING_POWER) == 0 && getPowerCurrent(0, PROPOSITION_POWER) == && balanceOf(0) == 0
+    }
 
-    assert (delegatingStateBefore => (delegatingStateAfter || !delegatingStateAfter));
-    //assert that any delagation granted can be rovoked or changed to another delegatee using delegate functions
-    assert ((delegatingStateBefore &&  !delegatingStateAfter )=>
-        f.selector == delegate(address).selector || 
-        f.selector == delegateByType(address,uint8).selector ||
-        f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
-        f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector);
-}
+    @Note:
+        Written by https://github.com/JayP11
 
-/**
-    The delegator can always revoke his proposition power only by calling delegating functions
-
-    Written by Elpacos
-
-*/
-rule checkRevokingPropositionPower(address someone, method f) {
-    env e;
-    calldataarg args;
-
-    //store proposition delegating state before
-    bool delegatingStateBefore = getDelegatingProposition(someone);
-    //transacction
-    f(e, args);
-    //store proposition delegating state after
-    bool delegatingStateAfter = getDelegatingProposition(someone);
-
-    assert (delegatingStateBefore => (delegatingStateAfter || !delegatingStateAfter));
-    //assert that any delagation granted can be rovoked or changed to another delegatee using delegate functions
-    assert ((delegatingStateBefore &&  !delegatingStateAfter )=>
-        f.selector == delegate(address).selector || 
-        f.selector == delegateByType(address,uint8).selector ||
-        f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
-        f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector);
-}
-
-/**
-
-    Address 0 has no voting power and no proposition power
-
-    Written by JayP11
+    @Link:
 */
 invariant addressZeroNoPower()
   getPowerCurrent(0, VOTING_POWER()) == 0 && getPowerCurrent(0, PROPOSITION_POWER()) == 0 && balanceOf(0) == 0
 
 
-/**
- * Check `metaDelegateByType` can only be called with a signed request.
+/*
+    @Rule
 
-   Written by kustosz
- */
+    @Description:
+        Verify that `metaDelegateByType` can only be called with a signed request.
+
+    @Formula:
+    {
+        ecrecover(v,r,s) != delegator
+    }
+    <
+        metaDelegateByType@withrevert(delegator, delegatee, delegationType, deadline, v, r, s)
+    >
+    {
+        lastReverted == true
+    }
+
+    @Note:
+        Written by https://github.com/kustosz
+
+    @Link:
+*/
 rule metaDelegateByTypeOnlyCallableWithProperlySignedArguments(env e, address delegator, address delegatee, uint8 delegationType, uint256 deadline, uint8 v, bytes32 r, bytes32 s) {
     require ecrecoverWrapper(computeMetaDelegateByTypeHash(delegator, delegatee, delegationType, deadline, _nonces(delegator)), v, r, s) != delegator;
     metaDelegateByType@withrevert(e, delegator, delegatee, delegationType, deadline, v, r, s);
     assert lastReverted;
 }
 
-/**
- * Check that it's impossible to use the same arguments to call `metaDalegate` twice.
+ /*
+    @Rule
 
-   Written by kustosz
- */
+    @Description:
+        Verify that it's impossible to use the same arguments to call `metaDalegate` twice.
+
+    @Formula:
+    {
+        hash1 = computeMetaDelegateHash(delegator, delegatee, deadline, nonce)
+        hash2 = computeMetaDelegateHash(delegator, delegatee, deadline, nonce + 1)
+        ecrecover(hash1, v, r, s) == delegator
+    }
+    <
+        metaDelegate(e1, delegator, delegatee, v, r, s)
+        metaDelegate@withrevert(e2, delegator, delegatee, delegationType, deadline, v, r, s)
+    >
+    {
+        lastReverted == true
+    }
+
+    @Note:
+        Written by https://github.com/kustosz
+
+    @Link:
+*/
 rule metaDelegateNonRepeatable(env e1, env e2, address delegator, address delegatee, uint256 deadline, uint8 v, bytes32 r, bytes32 s) {
     uint256 nonce = _nonces(delegator);
     bytes32 hash1 = computeMetaDelegateHash(delegator, delegatee, deadline, nonce);
@@ -134,39 +163,29 @@ rule metaDelegateNonRepeatable(env e1, env e2, address delegator, address delega
     assert lastReverted;
 }
 
-/**
-
-    Verify that only delegate functions can change someone's delegate.
-
-    Written by PeterisPrieditis
-
-*/
-
-rule votingDelegateChanges_updated(address alice, method f) {
-    env e;
-    calldataarg args;
-
-    address aliceVotingDelegateBefore = getVotingDelegate(alice);
-    address alicePropositionDelegateBefore = getPropositionDelegate(alice);
-
-    f(e, args);
-
-    address aliceVotingDelegateAfter = getVotingDelegate(alice);
-    address alicePropositionDelegateAfter = getPropositionDelegate(alice);
-
-    // only these four function may change the delegate of an address
-    assert (aliceVotingDelegateAfter != aliceVotingDelegateBefore) ||  (alicePropositionDelegateBefore != alicePropositionDelegateAfter) =>
-        f.selector == delegate(address).selector || 
-        f.selector == delegateByType(address,uint8).selector ||
-        f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
-        f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector;
-}
-
 
 /*
-    Power of the previous delegate is removed when the delegatee delegates to another delegate
+    @Rule
 
-    Written by priyankabhanderi
+    @Description:
+        Power of the previous delegate is removed when the delegatee delegates to another delegate
+
+    @Formula:
+    {
+        _votingBalance = getDelegatedVotingBalance(alice)
+    }
+    <
+        delegateByType(alice, VOTING_POWER)
+        delegateByType(bob, VOTING_POWER)
+    >
+    {
+        alice != bob => getDelegatedVotingBalance(alice) == _votingBalance
+    }
+
+    @Note:
+        Written by https://github.com/priyankabhanderi
+
+    @Link:
 */
 rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, address bob) {
 
@@ -190,11 +209,33 @@ rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, a
 }
 
 /*
+    @Rule
 
-    Voting and proposition power changes only as a result of a subset of functions
+    @Description:
+        Voting and proposition power change only as a result of specific functions
 
-    Written by top-sekret
+    @Formula:
+    {
+        powerBefore = getPowerCurrent(alice, type)
+    }
+    <
+        f(e, args)
+    >
+    {
+       powerAfter = getPowerCurrent(alice, type)
+       powerAfter != powerBefore =>
+        f.selector == delegate(address).selector ||
+        f.selector == delegateByType(address, uint8).selector ||
+        f.selector == metaDelegate(address, address, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == metaDelegateByType(address, address, uint8, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == transfer(address, uint256).selector ||
+        f.selector == transferFrom(address, address, uint256).selector
+    }
 
+    @Note:
+        Written by https://github.com/top-sekret
+
+    @Link:
 */
 
 rule powerChanges(address alice, method f) {
@@ -219,10 +260,29 @@ rule powerChanges(address alice, method f) {
 }
 
 
-/*
-    Changing a delegate of one type doesn't influence the delegate of the other type
 
-    Written by top-sekret
+/*
+    @Rule
+
+    @Description:
+        Changing a delegate of one type doesn't influence the delegate of the other type
+
+    @Formula:
+    {
+        delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
+    }
+    <
+        delegateByType(e, delegatee, 1 - type)
+    >
+    {
+       delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
+       delegateBefore == delegateAfter
+    }
+
+    @Note:
+        Written by https://github.com/top-sekret
+
+    @Link:
 */
 rule delegateIndependence(method f) {
     env e;
@@ -239,10 +299,41 @@ rule delegateIndependence(method f) {
     assert delegateBefore == delegateAfter;
 }
 
-/**
-    Verifying voting power increases/decreases while not being a voting delegatee yourself
+/*
+    @Rule
 
-    Written by Zarfsec
+    @Description:
+        Verifying voting power increases/decreases while not being a voting delegatee yourself
+
+    @Formula:
+    {
+        votingPowerBefore = getPowerCurrent(a, VOTING_POWER)
+        balanceBefore = balanceOf(a)
+        isVotingDelegatorBefore = getDelegatingVoting(a)
+        isVotingDelegateeBefore = getDelegatedVotingBalance(a) != 0
+    }
+    <
+        f(e, args)
+    >
+    {
+        votingPowerAfter = getPowerCurrent(a, VOTING_POWER()
+        balanceAfter = getBalance(a)
+        isVotingDelegatorAfter = getDelegatingVoting(a);
+        isVotingDelegateeAfter = getDelegatedVotingBalance(a) != 0
+
+        votingPowerBefore < votingPowerAfter <=> 
+        (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
+        (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0))
+        &&
+        votingPowerBefore > votingPowerAfter <=> 
+        (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore > balanceAfter)) ||
+        (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0))
+    }
+
+    @Note:
+        Written by https://github.com/Zarfsec
+
+    @Link:
 */
 rule votingPowerChangesWhileNotBeingADelegatee(address a) {
     require a != 0;
@@ -264,7 +355,7 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
 
     require !isVotingDelegateeBefore && !isVotingDelegateeAfter;
 
-    /** 
+    /* 
     If you're not a delegatee, your voting power only increases when
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
@@ -273,7 +364,7 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0));
 
-    /** 
+    /*
     If you're not a delegatee, your voting power only decreases when
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
@@ -283,10 +374,41 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0));
 }
 
-/**
-    Verifying proposition power increases/decreases while not being a proposition delegatee yourself
+/*
+    @Rule
 
-    Written by Zarfsec
+    @Description:
+        Verifying proposition power increases/decreases while not being a proposition delegatee yourself
+
+    @Formula:
+    {
+        propositionPowerBefore = getPowerCurrent(a, PROPOSITION_POWER)
+        balanceBefore = balanceOf(a)
+        isPropositionDelegatorBefore = getDelegatingProposition(a)
+        isPropositionDelegateeBefore = getDelegatedPropositionBalance(a) != 0
+    }
+    <
+        f(e, args)
+    >
+    {
+        propositionPowerAfter = getPowerCurrent(a, PROPOSITION_POWER()
+        balanceAfter = getBalance(a)
+        isPropositionDelegatorAfter = getDelegatingProposition(a);
+        isPropositionDelegateeAfter = getDelegatedPropositionBalance(a) != 0
+
+        propositionPowerBefore < propositionPowerAfter <=> 
+        (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
+        (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0))
+        &&
+        propositionPowerBefore > propositionPowerAfter <=> 
+        (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore > balanceAfter)) ||
+        (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0))
+    }
+
+    @Note:
+        Written by https://github.com/Zarfsec
+
+    @Link:
 */
 rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
     require a != 0;
@@ -308,7 +430,7 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
 
     require !isPropositionDelegateeBefore && !isPropositionDelegateeAfter;
 
-    /** 
+    /*
     If you're not a delegatee, your proposition power only increases when
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
@@ -317,7 +439,7 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0));
     
-    /** 
+    /*
     If you're not a delegatee, your proposition power only decreases when
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
@@ -327,3 +449,46 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0));
 }
 
+/*
+    @Rule
+
+    @Description:
+        Allowance only changes as a result of specific subset of functions
+
+    @Formula:
+    {
+        allowanceBefore = allowance(owner, spender)
+    }
+    <
+        f(e, args)
+    >
+    {
+       allowance(owner, spender) != allowanceBefore =>f.selector==approve(address,uint256).selector 
+            || f.selector==increaseAllowance(address,uint256).selector
+            || f.selector==decreaseAllowance(address,uint256).selector
+            || f.selector==transferFrom(address,address,uint256).selector
+            || f.selector==permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector
+
+    }
+
+    @Note:
+        Written by https://github.com/oracleorb
+
+    @Link:
+*/
+rule allowanceStateChange(env e){
+    address owner;
+    address user;
+    method f;
+    calldataarg args;
+
+    uint256 allowanceBefore=getAllowance(owner,user);
+    f(e, args);
+    uint256 allowanceAfter=getAllowance(owner,user);
+
+    assert allowanceBefore!=allowanceAfter => f.selector==approve(address,uint256).selector 
+    || f.selector==increaseAllowance(address,uint256).selector
+    || f.selector==decreaseAllowance(address,uint256).selector
+    || f.selector==transferFrom(address,address,uint256).selector
+    || f.selector==permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector;
+}
