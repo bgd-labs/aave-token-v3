@@ -12,7 +12,7 @@
 
 pragma solidity ^0.8.0;
 
-import {AaveTokenV3} from "./storage_harness/AaveTokenV3.sol";
+import {AaveTokenV3} from "../munged/AaveTokenV3.sol";
 
 contract AaveTokenV3Harness is AaveTokenV3 {
     function getBalance(address user) view public returns (uint104) {

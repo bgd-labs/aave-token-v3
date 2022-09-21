@@ -6,3 +6,5 @@ out/
 .certora_*
 node_modules/
 .env
+certora/munged
+resource_errors.json

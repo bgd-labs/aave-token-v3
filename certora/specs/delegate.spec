@@ -681,6 +681,38 @@ rule votingDelegateChanges(address alice, method f) {
         f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector;
 }
 
+/*
+    @Rule
+
+    @Description:
+        Verify that an account's voting and proposition power changes only as a result of a call to
+        the delegation and transfer functions
+
+    @Note:
+
+    @Link:
+*/
+rule votingPowerChanges(address alice, method f) {
+    env e;
+    calldataarg args;
+
+    uint aliceVotingPowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint alicePropPowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+
+    f(e, args);
+
+    uint aliceVotingPowerAfter = getPowerCurrent(alice, VOTING_POWER());
+    uint alicePropPowerAfter = getPowerCurrent(alice, PROPOSITION_POWER());
+
+    // only these four function may change the power of an address
+    assert aliceVotingPowerAfter != aliceVotingPowerBefore || alicePropPowerAfter != alicePropPowerBefore =>
+        f.selector == delegate(address).selector || 
+        f.selector == delegateByType(address,uint8).selector ||
+        f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector ||
+        f.selector == metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32).selector ||
+        f.selector == transfer(address,uint256).selector ||
+        f.selector == transferFrom(address,address,uint256).selector;
+}    
 
 /*
     @Rule
@@ -703,10 +735,10 @@ rule delegationTypeIndependence(address who, method f) filtered { f -> !f.isView
 	
 	address delegateeV_ = getVotingDelegate(who);
 	address delegateeP_ = getPropositionDelegate(who);
-	assert (_delegateeV == delegateeV_  || _delegateeP == delegateeP_) || (
-		f.selector == delegate(address).selector ||
-		f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector
-	), "one delegatee type stays the same, unless delegate or delegateBySig was called";
+    assert _delegateeV != delegateeV_ && _delegateeP != delegateeP_ =>
+        (f.selector == delegate(address).selector ||
+	    f.selector == metaDelegate(address,address,uint256,uint8,bytes32,bytes32).selector),
+        "one delegatee type stays the same, unless delegate or delegateBySig was called";
 }
 
 /*
@@ -746,4 +778,40 @@ rule cantDelegateTwice(address _delegate) {
     assert votingPowerAfter == votingPowerBefore + normalize(balanceOf(e.msg.sender));
     assert propPowerAfter == propPowerBefore + normalize(balanceOf(e.msg.sender));
     assert votingPowerAfter2 == votingPowerAfter && propPowerAfter2 == propPowerAfter;
+}
+
+/*
+    @Rule
+
+    @Description:
+        transfer and transferFrom change voting/proposition power identically
+
+    @Note:
+
+    @Link:
+*/
+rule transferAndTransferFromPowerEquivalence(address bob, uint amount) {
+    env e1;
+    env e2;
+    storage init = lastStorage;
+
+    address alice;
+    require alice == e1.msg.sender;
+
+    uint aliceVotingPowerBefore = getPowerCurrent(alice, VOTING_POWER());
+    uint alicePropPowerBefore = getPowerCurrent(alice, PROPOSITION_POWER());
+
+    transfer(e1, bob, amount);
+
+    uint aliceVotingPowerAfterTransfer = getPowerCurrent(alice, VOTING_POWER());
+    uint alicePropPowerAfterTransfer = getPowerCurrent(alice, PROPOSITION_POWER());
+
+    transferFrom(e2, alice, bob, amount) at init;
+
+    uint aliceVotingPowerAfterTransferFrom = getPowerCurrent(alice, VOTING_POWER());
+    uint alicePropPowerAfterTransferFrom = getPowerCurrent(alice, PROPOSITION_POWER());
+
+    assert aliceVotingPowerAfterTransfer == aliceVotingPowerAfterTransferFrom &&
+           alicePropPowerAfterTransfer == alicePropPowerAfterTransferFrom;
+
 }

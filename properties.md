@@ -30,6 +30,7 @@ $t_1$ → the state of the system after a transaction.
 
 ## General rules
 
+- The total power (of one type) of all users in the system is less or equal than the sum of balances of all AAVE holders (totalSupply of AAVE token): $$\sum powerOfAccount_i <= \sum balanceOf(account_i)$$
 - If an account is delegating a power to itself or to `address(0)`, that means that account is not delegating that power to anybody:
 
   $$powerOfAccountX = (accountXDelegatingPower \ ? \ 0 : balanceOf(accountX)) +
@@ -62,7 +63,7 @@ $t_1$ → the state of the system after a transaction.
 
   $$account1Power_{t1} = account1Power_{t0} = 0$$
 
-  $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance_{t0} / 10^{10} * 10^{10} + account1Balance_{t1} / 10^{10} * 10^{10}$$
 
   $$account2Power_{t1} = account2Power_{t0} + z$$
 
@@ -91,7 +92,7 @@ $t_1$ → the state of the system after a transaction.
 
   $$account2Power_{t1} = account2Power_{t0} = 0$$
 
-  $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
+  $$delegatee2Power_{t1}=delegatee2Power_{t0} - account2Balance_{t0} / 10^{10} * 10^{10} + account2Balance_{t1} / 10^{10} * 10^{10}$$
 
 
 ## Account1 is delegating power to delegatee1, **account2** is delegating power to delegatee2
@@ -100,8 +101,8 @@ $t_1$ → the state of the system after a transaction.
 
   $$account1Power_{t1} = account1Power_{t0} = 0$$
 
-  $$delegatee1Power_{t1} = delegatee1Power_{t0} - z / 10^{10} * 10^{10}$$
+  $$delegatee1Power_{t1} = delegatee1Power_{t0} - account1Balance_{t0} / 10^{10} * 10^{10} + account1Balance_{t1} / 10^{10} * 10^{10}$$
 
   $$account2Power_{t1} = account2Power_{t0} = 0$$
 
-  $$delegatee2Power_{t1}=delegatee2Power_{t0} + z / 10^{10} * 10^{10}$$
+  $$delegatee2Power_{t1}=delegatee2Power_{t0} - account2Balance_{t0} / 10^{10} * 10^{10} + account2Balance_{t1} / 10^{10} * 10^{10}$$

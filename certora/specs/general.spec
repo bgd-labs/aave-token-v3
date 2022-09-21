@@ -59,14 +59,14 @@ ghost mapping(address => uint104) balances {
     init_state axiom forall address a. balances[a] == 0;
 }
 
-/**
+/*
 
     Hooks
 
 */
 
 
-/**
+/*
 
     This hook updates the sum of delegated and undelegated balances on each change of delegation state.
     If the user moves from not delegating to delegating, their balance is moved from undelegated to delegating,
@@ -106,7 +106,7 @@ hook Sstore _balances[KEY address user].delegationState uint8 new_state (uint8 o
 }
 
 
-/**
+/*
 
     This hook updates the sum of delegated and undelegated balances on each change of user balance.
     Depending on the delegation state, either the delegated or the undelegated balance get updated.
@@ -130,6 +130,12 @@ hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_bal
 
 }
 
+// user's delegation state is always valid, i.e. one of the 4 legitimate states
+// (NO_DELEGATION, VOTING_DELEGATED, PROPOSITION_DELEGATED, FULL_POWER_DELEGATED)
+// passes 
+invariant delegationStateValid(address user)
+    validDelegationState(user)
+
 
 /*
     @Rule
@@ -150,7 +156,7 @@ invariant delegateCorrectness(address user)
     ((getPropositionDelegate(user) == user || getPropositionDelegate(user) == 0) <=> !getDelegatingProposition(user))
     {
         preserved {
-            require getDelegationState(user) <= FULL_POWER_DELEGATED();
+            requireInvariant delegationStateValid(user);
         }
     }
 
@@ -196,11 +202,13 @@ invariant sumOfPBalancesCorrectness() sumDelegatedBalancesP + sumUndelegatedBala
 */
 rule transferDoesntChangeDelegationState() {
     env e;
-    address from; address to;
+    address from; address to; address charlie;
+    require (charlie != from && charlie != to);
     uint amount;
 
     uint8 stateFromBefore = getDelegationState(from);
     uint8 stateToBefore = getDelegationState(to);
+    uint8 stateCharlieBefore = getDelegationState(charlie);
     require stateFromBefore <= FULL_POWER_DELEGATED() && stateToBefore <= FULL_POWER_DELEGATED();
     bool testFromBefore = isDelegatingVoting[from];
     bool testToBefore = isDelegatingVoting[to];
@@ -213,4 +221,5 @@ rule transferDoesntChangeDelegationState() {
     bool testToAfter = isDelegatingVoting[to];
 
     assert testFromBefore == testFromAfter && testToBefore == testToAfter;
+    assert getDelegationState(charlie) == stateCharlieBefore;
 }

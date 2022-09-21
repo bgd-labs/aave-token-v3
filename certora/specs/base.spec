@@ -5,7 +5,7 @@
 
 */
 
-/**
+/*
 
     Declaration of methods of the Aave token contract (and harness)
 
