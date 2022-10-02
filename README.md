@@ -1,6 +1,6 @@
 # $AAVE V3
 
-Next iteration of the AAVE token, optimized for its usage on the upcoming new iteration of the Aave Governance.
+Nex#t iteration of the AAVE token, optimized for its usage on the upcoming new iteration of the Aave Governance.
 
 More detailed description and specification [HERE](./properties.md)
 

@@ -1,0 +1,81 @@
+diff -uN AaveTokenV3.sol /AaveTokenV3.sol
+--- AaveTokenV3.sol	2022-08-04 12:28:46.000000000 +0300
++++ /AaveTokenV3.sol	2022-09-21 10:49:34.000000000 +0300
+@@ -210,7 +210,7 @@
+         fromBalanceAfter = fromUserState.balance - uint104(amount);
+       }
+       _balances[from].balance = fromBalanceAfter;
+-      if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
++      if (fromUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
+         _governancePowerTransferByType(
+           fromUserState.balance,
+           fromBalanceAfter,
+@@ -232,7 +232,7 @@
+       toUserState.balance = toBalanceBefore + uint104(amount);
+       _balances[to] = toUserState;
+ 
+-      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
++      if (toUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
+         _governancePowerTransferByType(
+           toBalanceBefore,
+           toUserState.balance,
+@@ -288,7 +288,7 @@
+           : address(0);
+     }
+     return
+-      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
++      userState.delegationState >= uint8(DelegationState.PROPOSITION_DELEGATED)
+         ? _propositionDelegateeV2[delegator]
+         : address(0);
+   }
+@@ -325,16 +325,12 @@
+   ) internal pure returns (DelegationAwareBalance memory) {
+     if (willDelegate) {
+       // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
+-      userState.delegationState = DelegationState(
+-        uint8(userState.delegationState) | (uint8(delegationType) + 1)
+-      );
++      userState.delegationState = userState.delegationState | (uint8(delegationType) + 1);
+     } else {
+       // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
+       // then bitwise AND, which means it will keep only another delegation type if it exists
+-      userState.delegationState = DelegationState(
+-        uint8(userState.delegationState) &
+-          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED))
+-      );
++      userState.delegationState = userState.delegationState &
++          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED));
+     }
+     return userState;
+   }
+diff -uN BaseAaveToken.sol /BaseAaveToken.sol
+--- BaseAaveToken.sol	2022-08-04 15:01:43.000000000 +0300
++++ /BaseAaveToken.sol	2022-09-21 10:51:54.000000000 +0300
+@@ -1,9 +1,9 @@
+ // SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.0;
+ 
+-import {Context} from '../lib/openzeppelin-contracts/contracts/utils/Context.sol';
+-import {IERC20} from '../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+-import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
++import {Context} from './lib/openzeppelin-contracts/contracts/utils/Context.sol';
++import {IERC20} from './lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
++import {IERC20Metadata} from './lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+ 
+ // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
+ abstract contract BaseAaveToken is Context, IERC20Metadata {
+@@ -16,10 +16,10 @@
+ 
+   // reorder fields to make hooks syntax simpler
+   struct DelegationAwareBalance {
+-    DelegationState delegationState;
+     uint104 balance;
+     uint72 delegatedPropositionBalance;
+     uint72 delegatedVotingBalance;
++    uint8 delegationState; // refactored from enum
+   }
+ 
+   mapping(address => DelegationAwareBalance) internal _balances;
+Common subdirectories: interfaces and /interfaces
+Common subdirectories: test and /test
+Common subdirectories: utils and /utils
