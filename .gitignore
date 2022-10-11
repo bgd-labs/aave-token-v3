@@ -4,3 +4,10 @@ out/
 node_modules
 package-lock.json
 .env
+
+# Certora
+.certora_config/
+.last_confs/
+.certora_*
+certora/munged
+resource_errors.json
