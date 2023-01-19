@@ -275,8 +275,8 @@ rule powerChanges(address alice, method f) {
         delegateByType(e, delegatee, 1 - type)
     >
     {
-       delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
-       delegateBefore == delegateAfter
+        delegateAfter = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
+        delegateBefore == delegateAfter
     }
 
     @Note:
