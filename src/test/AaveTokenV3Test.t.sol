@@ -14,12 +14,13 @@ contract AaveTokenV3Test is AaveUtils {
     address owner = vm.addr(privateKey);
     address spender = address(5);
     uint256 amountToPermit = 1000 ether;
+    uint256 nonceBefore = AAVE_TOKEN.nonces(owner);
 
     Permit memory permitParams = Permit({
       owner: owner,
       spender: spender,
       value: amountToPermit,
-      nonce: AAVE_TOKEN._nonces(owner),
+      nonce: AAVE_TOKEN.nonces(owner),
       deadline: type(uint256).max
     });
 
@@ -36,8 +37,10 @@ contract AaveTokenV3Test is AaveUtils {
       s
     );
 
+    uint256 nonceAfter = AAVE_TOKEN.nonces(owner);
     uint256 allowance = AAVE_TOKEN.allowance(owner, spender);
-    assertTrue(allowance == amountToPermit);
+    assertEq(allowance, amountToPermit);
+    assertEq(nonceBefore + 1, nonceAfter);
   }
 
   // FORK BLOCK: 15319194
@@ -91,7 +94,7 @@ contract AaveTokenV3Test is AaveUtils {
       delegator: delegator,
       delegatee: delegatee,
       delegationType: IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION,
-      nonce: AAVE_TOKEN._nonces(delegator),
+      nonce: AAVE_TOKEN.nonces(delegator),
       deadline: type(uint256).max
     });
 
@@ -161,7 +164,7 @@ contract AaveTokenV3Test is AaveUtils {
     Delegate memory delegateByTypeParams = Delegate({
       delegator: delegator,
       delegatee: delegatee,
-      nonce: AAVE_TOKEN._nonces(delegator),
+      nonce: AAVE_TOKEN.nonces(delegator),
       deadline: type(uint256).max
     });
 
