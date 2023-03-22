@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
 import {AaveTokenV3} from '../../AaveTokenV3.sol';
-import {IAaveTokenV3} from './IAaveTokenV3.sol';
+import {IAaveTokenV3} from '../../interfaces/IAaveTokenV3.sol';
 import {IBaseAdminUpgradeabilityProxy} from './IBaseAdminUpgradeabilityProxy.sol';
 
 abstract contract AaveUtils is Test {
