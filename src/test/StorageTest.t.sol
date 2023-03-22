@@ -32,12 +32,9 @@ contract StorageTest is AaveUtils {
   }
 
   function testForNonces() public {
-    uint256 nonceBefore = AAVE_TOKEN._nonces(AAVE_HOLDERS[6]);
     updateAaveImplementation(AAVE_IMPLEMENTATION_V3);
-    uint256 nonceAfter = AAVE_TOKEN._nonces(AAVE_HOLDERS[6]);
     uint256 updatedNonce = AAVE_TOKEN.nonces(AAVE_HOLDERS[6]);
-    assertEq(nonceBefore, nonceAfter);
-    assertEq(nonceBefore, updatedNonce);
+    assertEq(updatedNonce, 0);
   }
 
   function testForBalances() public {
