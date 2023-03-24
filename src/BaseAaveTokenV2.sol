@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-import {IERC20Permit} from 'openzeppelin-contracts/token/ERC20/extensions/draft-IERC20Permit.sol';
+import {IERC20Permit} from 'openzeppelin-contracts/token/ERC20/extensions/IERC20Permit.sol';
 import {BaseAaveToken} from './BaseAaveToken.sol';
 
 abstract contract BaseAaveTokenV2 is BaseAaveToken, IERC20Permit, VersionedInitializable {

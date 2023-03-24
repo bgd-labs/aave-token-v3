@@ -114,4 +114,22 @@ interface IGovernancePowerDelegationToken {
     bytes32 r,
     bytes32 s
   ) external;
+
+  /**
+   * @notice method to get the EIP-712 typehash for delegate
+   * @return delegate typehash bytes32
+   */
+  function DELEGATE_TYPEHASH() external view returns (bytes32);
+
+  /**
+   * @notice method to get the EIP-712 typehash for delegateBy
+   * @return delegateBy typehash bytes32
+   */
+  function DELEGATE_BY_TYPE_TYPEHASH() external view returns (bytes32);
+
+  /**
+   * @notice method to get the power scale factor used for precision by the governance system
+   * @return power scale factor of the token
+   */
+  function POWER_SCALE_FACTOR() external view returns (uint256);
 }
