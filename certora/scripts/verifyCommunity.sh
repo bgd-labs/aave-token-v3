@@ -8,7 +8,7 @@ certoraRun certora/harness/AaveTokenV3HarnessCommunity.sol:AaveTokenV3Harness \
     $RULE \
     --solc solc8.13 \
     --optimistic_loop \
-    --send_only \
+    --cloud \
     --msg "AaveTokenV3HarnessCommunity:community.spec $1"
 # --sanity
- 
+

@@ -13,12 +13,17 @@ help:
 
 munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
 	rm -rf $@
-	cp -r $(CONTRACTS_DIR) $@
+	mkdir $@
 	cp -r $(LIB_DIR) $@
+	cp -r $(CONTRACTS_DIR) $@
 	patch -p0 -d $@ < $(PATCH)
 
 record:
-	diff -uN $(CONTRACTS_DIR) $(MUNGED_DIR) | sed 's+$(CONTRACTS_DIR)/++g' | sed 's+$(MUNGED_DIR)++g' > $(PATCH)
+	mkdir tmp_make_r
+	cp -r $(LIB_DIR) tmp_make_r
+	cp -r $(CONTRACTS_DIR) tmp_make_r
+	diff -ruN tmp_make_r $(MUNGED_DIR) | sed 's+tmp_make_r/++g' | sed 's+$(MUNGED_DIR)/++g' > $(PATCH)
+	rm -rf tmp_make_r
 
 clean:
 	git clean -fdX
