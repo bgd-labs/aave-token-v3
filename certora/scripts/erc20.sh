@@ -8,6 +8,6 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3Harness \
     $RULE \
     --solc solc8.13 \
     --optimistic_loop \
-    --cloud \
+    --send_only \
     --msg "AaveTokenV3:erc20.spec $1"
  

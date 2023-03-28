@@ -64,11 +64,14 @@ diff -uN BaseAaveToken.sol /BaseAaveToken.sol
  
  // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
  abstract contract BaseAaveToken is Context, IERC20Metadata {
-@@ -18,7 +18,7 @@
+@@ -16,10 +16,10 @@
+ 
+   // reorder fields to make hooks syntax simpler
+   struct DelegationAwareBalance {
+-    DelegationState delegationState;
      uint104 balance;
      uint72 delegatedPropositionBalance;
      uint72 delegatedVotingBalance;
--    DelegationState delegationState;
 +    uint8 delegationState; // refactored from enum
    }
  
