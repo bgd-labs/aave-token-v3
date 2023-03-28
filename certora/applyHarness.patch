@@ -1,6 +1,6 @@
 diff -ruN AaveTokenV3.sol AaveTokenV3.sol
 --- AaveTokenV3.sol	1970-01-01 01:00:00
-+++ AaveTokenV3.sol	2023-03-28 12:58:17
++++ AaveTokenV3.sol	2023-03-28 13:08:24
 @@ -0,0 +1,388 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -393,7 +393,7 @@ diff -ruN AaveTokenV3.sol AaveTokenV3.sol
 \ No newline at end of file
 diff -ruN AaveTokenV3.sol.orig AaveTokenV3.sol.orig
 --- AaveTokenV3.sol.orig	1970-01-01 01:00:00
-+++ AaveTokenV3.sol.orig	2023-03-28 12:58:17
++++ AaveTokenV3.sol.orig	2023-03-28 13:08:24
 @@ -0,0 +1,392 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -790,7 +790,7 @@ diff -ruN AaveTokenV3.sol.orig AaveTokenV3.sol.orig
 \ No newline at end of file
 diff -ruN BaseAaveToken.sol BaseAaveToken.sol
 --- BaseAaveToken.sol	1970-01-01 01:00:00
-+++ BaseAaveToken.sol	2023-03-28 12:58:17
++++ BaseAaveToken.sol	2023-03-28 13:08:24
 @@ -0,0 +1,162 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -956,7 +956,7 @@ diff -ruN BaseAaveToken.sol BaseAaveToken.sol
 +}
 diff -ruN BaseAaveTokenV2.sol BaseAaveTokenV2.sol
 --- BaseAaveTokenV2.sol	1970-01-01 01:00:00
-+++ BaseAaveTokenV2.sol	2023-03-28 12:58:17
++++ BaseAaveTokenV2.sol	2023-03-28 13:08:24
 @@ -0,0 +1,77 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1037,7 +1037,7 @@ diff -ruN BaseAaveTokenV2.sol BaseAaveTokenV2.sol
 +}
 diff -ruN BaseAaveTokenV3.sol BaseAaveTokenV3.sol
 --- BaseAaveTokenV3.sol	1970-01-01 01:00:00
-+++ BaseAaveTokenV3.sol	2023-03-28 12:58:17
++++ BaseAaveTokenV3.sol	2023-03-28 13:08:24
 @@ -0,0 +1,84 @@
 +// SPDX-License-Identifier: MIT
 +
@@ -1125,7 +1125,7 @@ diff -ruN BaseAaveTokenV3.sol BaseAaveTokenV3.sol
 +}
 diff -ruN interfaces/IGovernancePowerDelegationToken.sol interfaces/IGovernancePowerDelegationToken.sol
 --- interfaces/IGovernancePowerDelegationToken.sol	1970-01-01 01:00:00
-+++ interfaces/IGovernancePowerDelegationToken.sol	2023-03-28 12:58:17
++++ interfaces/IGovernancePowerDelegationToken.sol	2023-03-28 13:08:24
 @@ -0,0 +1,117 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1246,7 +1246,7 @@ diff -ruN interfaces/IGovernancePowerDelegationToken.sol interfaces/IGovernanceP
 +}
 diff -ruN interfaces/ITransferHook.sol interfaces/ITransferHook.sol
 --- interfaces/ITransferHook.sol	1970-01-01 01:00:00
-+++ interfaces/ITransferHook.sol	2023-03-28 12:58:17
++++ interfaces/ITransferHook.sol	2023-03-28 13:08:24
 @@ -0,0 +1,10 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1259,9 +1259,20 @@ diff -ruN interfaces/ITransferHook.sol interfaces/ITransferHook.sol
 +  ) external;
 +}
 diff -ruN src/BaseAaveToken.sol src/BaseAaveToken.sol
---- src/BaseAaveToken.sol	2023-03-28 13:07:07
-+++ src/BaseAaveToken.sol	2023-03-28 13:03:35
-@@ -16,10 +16,10 @@
+--- src/BaseAaveToken.sol	2023-03-28 13:52:04
++++ src/BaseAaveToken.sol	2023-03-28 13:51:59
+@@ -1,10 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.0;
+ 
+-import {Context} from '../lib/openzeppelin-contracts/contracts/utils/Context.sol';
+-import {IERC20} from '../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+-import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+-
+ // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
+ abstract contract BaseAaveToken is Context, IERC20Metadata {
+   enum DelegationState {
+@@ -16,10 +12,10 @@
  
    // reorder fields to make hooks syntax simpler
    struct DelegationAwareBalance {
@@ -1275,7 +1286,7 @@ diff -ruN src/BaseAaveToken.sol src/BaseAaveToken.sol
    mapping(address => DelegationAwareBalance) internal _balances;
 diff -ruN test/InternalDelegationFunctionsTest.t.sol test/InternalDelegationFunctionsTest.t.sol
 --- test/InternalDelegationFunctionsTest.t.sol	1970-01-01 01:00:00
-+++ test/InternalDelegationFunctionsTest.t.sol	2023-03-28 12:58:17
++++ test/InternalDelegationFunctionsTest.t.sol	2023-03-28 13:08:24
 @@ -0,0 +1,127 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1406,7 +1417,7 @@ diff -ruN test/InternalDelegationFunctionsTest.t.sol test/InternalDelegationFunc
 +}
 diff -ruN test/StorageTest.t.sol test/StorageTest.t.sol
 --- test/StorageTest.t.sol	1970-01-01 01:00:00
-+++ test/StorageTest.t.sol	2023-03-28 12:58:17
++++ test/StorageTest.t.sol	2023-03-28 13:08:24
 @@ -0,0 +1,44 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1454,7 +1465,7 @@ diff -ruN test/StorageTest.t.sol test/StorageTest.t.sol
 +}
 diff -ruN test/utils/AaveUtils.sol test/utils/AaveUtils.sol
 --- test/utils/AaveUtils.sol	1970-01-01 01:00:00
-+++ test/utils/AaveUtils.sol	2023-03-28 12:58:17
++++ test/utils/AaveUtils.sol	2023-03-28 13:08:24
 @@ -0,0 +1,47 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1505,7 +1516,7 @@ diff -ruN test/utils/AaveUtils.sol test/utils/AaveUtils.sol
 +}
 diff -ruN test/utils/IBaseAdminUpgradeabilityProxy.sol test/utils/IBaseAdminUpgradeabilityProxy.sol
 --- test/utils/IBaseAdminUpgradeabilityProxy.sol	1970-01-01 01:00:00
-+++ test/utils/IBaseAdminUpgradeabilityProxy.sol	2023-03-28 12:58:17
++++ test/utils/IBaseAdminUpgradeabilityProxy.sol	2023-03-28 13:08:24
 @@ -0,0 +1,6 @@
 +// SPDX-License-Identifier: MIT
 +pragma solidity ^0.8.0;
@@ -1515,7 +1526,7 @@ diff -ruN test/utils/IBaseAdminUpgradeabilityProxy.sol test/utils/IBaseAdminUpgr
 +}
 diff -ruN utils/VersionedInitializable.sol utils/VersionedInitializable.sol
 --- utils/VersionedInitializable.sol	1970-01-01 01:00:00
-+++ utils/VersionedInitializable.sol	2023-03-28 12:58:17
++++ utils/VersionedInitializable.sol	2023-03-28 13:08:24
 @@ -0,0 +1,42 @@
 +// SPDX-License-Identifier: agpl-3.0
 +pragma solidity ^0.8.0;
