@@ -1,69 +1,1266 @@
-diff -uN AaveTokenV3.sol /AaveTokenV3.sol
---- AaveTokenV3.sol	2022-10-11 16:03:49.000000000 +0300
-+++ /AaveTokenV3.sol	2022-10-11 16:13:48.000000000 +0300
-@@ -210,7 +210,7 @@
-         fromBalanceAfter = fromUserState.balance - uint104(amount);
-       }
-       _balances[from].balance = fromBalanceAfter;
--      if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
+diff -ruN AaveTokenV3.sol AaveTokenV3.sol
+--- AaveTokenV3.sol	1970-01-01 01:00:00
++++ AaveTokenV3.sol	2023-03-28 12:58:17
+@@ -0,0 +1,388 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import {VersionedInitializable} from './utils/VersionedInitializable.sol';
++import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
++import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
++
++contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
++  mapping(address => address) internal _votingDelegateeV2;
++  mapping(address => address) internal _propositionDelegateeV2;
++
++  /// @dev we assume that for the governance system 18 decimals of precision is not needed,
++  // by this constant we reduce it by 10, to 8 decimals
++  uint256 public constant POWER_SCALE_FACTOR = 1e10;
++
++  bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
++    keccak256(
++      'DelegateByType(address delegator,address delegatee,GovernancePowerType delegationType,uint256 nonce,uint256 deadline)'
++    );
++  bytes32 public constant DELEGATE_TYPEHASH =
++    keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
++
++  /**
++   * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
++   */
++  function initialize() external virtual initializer {}
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function delegateByType(address delegatee, GovernancePowerType delegationType)
++    external
++    virtual
++    override
++  {
++    _delegateByType(msg.sender, delegatee, delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function delegate(address delegatee) external override {
++    _delegateByType(msg.sender, delegatee, GovernancePowerType.VOTING);
++    _delegateByType(msg.sender, delegatee, GovernancePowerType.PROPOSITION);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
++    external
++    view
++    override
++    returns (address)
++  {
++    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getDelegates(address delegator) external view override returns (address, address) {
++    DelegationAwareBalance memory delegatorBalance = _balances[delegator];
++    return (
++      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
++      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.PROPOSITION)
++    );
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getPowerCurrent(address user, GovernancePowerType delegationType)
++    public
++    view
++    override
++    returns (uint256)
++  {
++    DelegationAwareBalance memory userState = _balances[user];
++    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
++      ? _balances[user].balance
++      : 0;
++    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType);
++    return userOwnPower + userDelegatedPower;
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getPowersCurrent(address user) external view override returns (uint256, uint256) {
++    return (
++      getPowerCurrent(user, GovernancePowerType.VOTING),
++      getPowerCurrent(user, GovernancePowerType.PROPOSITION)
++    );
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function metaDelegateByType(
++    address delegator,
++    address delegatee,
++    GovernancePowerType delegationType,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external override {
++    require(delegator != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[delegator];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(
++          abi.encode(
++            DELEGATE_BY_TYPE_TYPEHASH,
++            delegator,
++            delegatee,
++            delegationType,
++            currentValidNonce,
++            deadline
++          )
++        )
++      )
++    );
++
++    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // Does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[delegator] = currentValidNonce + 1;
++    }
++    _delegateByType(delegator, delegatee, delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function metaDelegate(
++    address delegator,
++    address delegatee,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external override {
++    require(delegator != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[delegator];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, currentValidNonce, deadline))
++      )
++    );
++
++    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[delegator] = currentValidNonce + 1;
++    }
++    _delegateByType(delegator, delegatee, GovernancePowerType.VOTING);
++    _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
++  }
++
++  /**
++   * @dev Modifies the delegated power of a `delegatee` account by type (VOTING, PROPOSITION).
++   * Passing the impact on the delegation of `delegatee` account before and after to reduce conditionals and not lose
++   * any precision.
++   * @param impactOnDelegationBefore how much impact a balance of another account had over the delegation of a `delegatee`
++   * before an action.
++   * For example, if the action is a delegation from one account to another, the impact before the action will be 0.
++   * @param impactOnDelegationAfter how much impact a balance of another account will have  over the delegation of a `delegatee`
++   * after an action.
++   * For example, if the action is a delegation from one account to another, the impact after the action will be the whole balance
++   * of the account changing the delegatee.
++   * @param delegatee the user whom delegated governance power will be changed
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _governancePowerTransferByType(
++    uint104 impactOnDelegationBefore,
++    uint104 impactOnDelegationAfter,
++    address delegatee,
++    GovernancePowerType delegationType
++  ) internal {
++    if (delegatee == address(0)) return;
++    if (impactOnDelegationBefore == impactOnDelegationAfter) return;
++
++    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
++    uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
++    uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
++
++    if (delegationType == GovernancePowerType.VOTING) {
++      _balances[delegatee].delegatedVotingBalance =
++        _balances[delegatee].delegatedVotingBalance -
++        impactOnDelegationBefore72 +
++        impactOnDelegationAfter72;
++    } else {
++      _balances[delegatee].delegatedPropositionBalance =
++        _balances[delegatee].delegatedPropositionBalance -
++        impactOnDelegationBefore72 +
++        impactOnDelegationAfter72;
++    }
++  }
++
++  /**
++   * @dev performs all state changes related to balance transfer and corresponding delegation changes
++   * @param from token sender
++   * @param to token recipient
++   * @param amount amount of tokens sent
++   **/
++  function _transferWithDelegation(
++    address from,
++    address to,
++    uint256 amount
++  ) internal override {
++    if (from == to) {
++      return;
++    }
++
++    if (from != address(0)) {
++      DelegationAwareBalance memory fromUserState = _balances[from];
++      require(fromUserState.balance >= amount, 'ERC20: transfer amount exceeds balance');
++
++      uint104 fromBalanceAfter;
++      unchecked {
++        fromBalanceAfter = fromUserState.balance - uint104(amount);
++      }
++      _balances[from].balance = fromBalanceAfter;
 +      if (fromUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
-         _governancePowerTransferByType(
-           fromUserState.balance,
-           fromBalanceAfter,
-@@ -232,7 +232,7 @@
-       toUserState.balance = toBalanceBefore + uint104(amount);
-       _balances[to] = toUserState;
- 
--      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
++        _governancePowerTransferByType(
++          fromUserState.balance,
++          fromBalanceAfter,
++          _getDelegateeByType(from, fromUserState, GovernancePowerType.VOTING),
++          GovernancePowerType.VOTING
++        );
++        _governancePowerTransferByType(
++          fromUserState.balance,
++          fromBalanceAfter,
++          _getDelegateeByType(from, fromUserState, GovernancePowerType.PROPOSITION),
++          GovernancePowerType.PROPOSITION
++        );
++      }
++    }
++
++    if (to != address(0)) {
++      DelegationAwareBalance memory toUserState = _balances[to];
++      uint104 toBalanceBefore = toUserState.balance;
++      toUserState.balance = toBalanceBefore + uint104(amount);
++      _balances[to] = toUserState;
++
 +      if (toUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
-         _governancePowerTransferByType(
-           toBalanceBefore,
-           toUserState.balance,
-@@ -288,7 +288,7 @@
-           : address(0);
-     }
-     return
--      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
++        _governancePowerTransferByType(
++          toBalanceBefore,
++          toUserState.balance,
++          _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
++          GovernancePowerType.VOTING
++        );
++        _governancePowerTransferByType(
++          toBalanceBefore,
++          toUserState.balance,
++          _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
++          GovernancePowerType.PROPOSITION
++        );
++      }
++    }
++  }
++
++  /**
++   * @dev Extracts from state and returns delegated governance power (Voting, Proposition)
++   * @param userState the current state of a user
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _getDelegatedPowerByType(
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType
++  ) internal pure returns (uint256) {
++    return
++      POWER_SCALE_FACTOR *
++      (
++        delegationType == GovernancePowerType.VOTING
++          ? userState.delegatedVotingBalance
++          : userState.delegatedPropositionBalance
++      );
++  }
++
++  /**
++   * @dev Extracts from state and returns the delegatee of a delegator by type of governance power (Voting, Proposition)
++   * - If the delegator doesn't have any delegatee, returns address(0)
++   * @param delegator delegator
++   * @param userState the current state of a user
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _getDelegateeByType(
++    address delegator,
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType
++  ) internal view returns (address) {
++    if (delegationType == GovernancePowerType.VOTING) {
++      return
++        /// With the & operation, we cover both VOTING_DELEGATED delegation and FULL_POWER_DELEGATED
++        /// as VOTING_DELEGATED is equivalent to 01 in binary and FULL_POWER_DELEGATED is equivalent to 11
++        (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
++          ? _votingDelegateeV2[delegator]
++          : address(0);
++    }
++    return
 +      userState.delegationState >= uint8(DelegationState.PROPOSITION_DELEGATED)
-         ? _propositionDelegateeV2[delegator]
-         : address(0);
-   }
-@@ -325,16 +325,12 @@
-   ) internal pure returns (DelegationAwareBalance memory) {
-     if (willDelegate) {
-       // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
--      userState.delegationState = DelegationState(
--        uint8(userState.delegationState) | (uint8(delegationType) + 1)
--      );
++        ? _propositionDelegateeV2[delegator]
++        : address(0);
++  }
++
++  /**
++   * @dev Changes user's delegatee address by type of governance power (Voting, Proposition)
++   * @param delegator delegator
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   * @param _newDelegatee the new delegatee
++   **/
++  function _updateDelegateeByType(
++    address delegator,
++    GovernancePowerType delegationType,
++    address _newDelegatee
++  ) internal {
++    address newDelegatee = _newDelegatee == delegator ? address(0) : _newDelegatee;
++    if (delegationType == GovernancePowerType.VOTING) {
++      _votingDelegateeV2[delegator] = newDelegatee;
++    } else {
++      _propositionDelegateeV2[delegator] = newDelegatee;
++    }
++  }
++
++  /**
++   * @dev Updates the specific flag which signaling about existence of delegation of governance power (Voting, Proposition)
++   * @param userState a user state to change
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   * @param willDelegate next state of delegation
++   **/
++  function _updateDelegationFlagByType(
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType,
++    bool willDelegate
++  ) internal pure returns (DelegationAwareBalance memory) {
++    if (willDelegate) {
++      // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
 +      userState.delegationState = userState.delegationState | (uint8(delegationType) + 1);
-     } else {
-       // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
-       // then bitwise AND, which means it will keep only another delegation type if it exists
--      userState.delegationState = DelegationState(
--        uint8(userState.delegationState) &
--          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED))
--      );
++    } else {
++      // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
++      // then bitwise AND, which means it will keep only another delegation type if it exists
 +      userState.delegationState = userState.delegationState &
 +          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED));
-     }
-     return userState;
-   }
-diff -uN BaseAaveToken.sol /BaseAaveToken.sol
---- BaseAaveToken.sol	2022-10-11 17:36:35.000000000 +0300
-+++ /BaseAaveToken.sol	2022-10-11 16:20:40.000000000 +0300
-@@ -1,9 +1,9 @@
- // SPDX-License-Identifier: MIT
- pragma solidity ^0.8.0;
- 
--import {Context} from '../lib/openzeppelin-contracts/contracts/utils/Context.sol';
--import {IERC20} from '../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
--import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
++    }
++    return userState;
++  }
++
++  /**
++   * @dev This is the equivalent of an ERC20 transfer(), but for a power type: an atomic transfer of a balance (power).
++   * When needed, it decreases the power of the `delegator` and when needed, it increases the power of the `delegatee`
++   * @param delegator delegator
++   * @param _delegatee the user which delegated power will change
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   **/
++  function _delegateByType(
++    address delegator,
++    address _delegatee,
++    GovernancePowerType delegationType
++  ) internal {
++    // Here we unify the property that delegating power to address(0) == delegating power to yourself == no delegation
++    // So from now on, not being delegating is (exclusively) that delegatee == address(0)
++    address delegatee = _delegatee == delegator ? address(0) : _delegatee;
++
++    // We read the whole struct before validating delegatee, because in the optimistic case
++    // (_delegatee != currentDelegatee) we will reuse userState in the rest of the function
++    DelegationAwareBalance memory delegatorState = _balances[delegator];
++    address currentDelegatee = _getDelegateeByType(delegator, delegatorState, delegationType);
++    if (delegatee == currentDelegatee) return;
++
++    bool delegatingNow = currentDelegatee != address(0);
++    bool willDelegateAfter = delegatee != address(0);
++
++    if (delegatingNow) {
++      _governancePowerTransferByType(delegatorState.balance, 0, currentDelegatee, delegationType);
++    }
++
++    if (willDelegateAfter) {
++      _governancePowerTransferByType(0, delegatorState.balance, delegatee, delegationType);
++    }
++
++    _updateDelegateeByType(delegator, delegationType, delegatee);
++
++    if (willDelegateAfter != delegatingNow) {
++      _balances[delegator] = _updateDelegationFlagByType(
++        delegatorState,
++        delegationType,
++        willDelegateAfter
++      );
++    }
++
++    emit DelegateChanged(delegator, delegatee, delegationType);
++  }
++}
+\ No newline at end of file
+diff -ruN AaveTokenV3.sol.orig AaveTokenV3.sol.orig
+--- AaveTokenV3.sol.orig	1970-01-01 01:00:00
++++ AaveTokenV3.sol.orig	2023-03-28 12:58:17
+@@ -0,0 +1,392 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import {VersionedInitializable} from './utils/VersionedInitializable.sol';
++import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
++import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
++
++contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
++  mapping(address => address) internal _votingDelegateeV2;
++  mapping(address => address) internal _propositionDelegateeV2;
++
++  /// @dev we assume that for the governance system 18 decimals of precision is not needed,
++  // by this constant we reduce it by 10, to 8 decimals
++  uint256 public constant POWER_SCALE_FACTOR = 1e10;
++
++  bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
++    keccak256(
++      'DelegateByType(address delegator,address delegatee,GovernancePowerType delegationType,uint256 nonce,uint256 deadline)'
++    );
++  bytes32 public constant DELEGATE_TYPEHASH =
++    keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
++
++  /**
++   * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
++   */
++  function initialize() external virtual initializer {}
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function delegateByType(address delegatee, GovernancePowerType delegationType)
++    external
++    virtual
++    override
++  {
++    _delegateByType(msg.sender, delegatee, delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function delegate(address delegatee) external override {
++    _delegateByType(msg.sender, delegatee, GovernancePowerType.VOTING);
++    _delegateByType(msg.sender, delegatee, GovernancePowerType.PROPOSITION);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
++    external
++    view
++    override
++    returns (address)
++  {
++    return _getDelegateeByType(delegator, _balances[delegator], delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getDelegates(address delegator) external view override returns (address, address) {
++    DelegationAwareBalance memory delegatorBalance = _balances[delegator];
++    return (
++      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
++      _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.PROPOSITION)
++    );
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getPowerCurrent(address user, GovernancePowerType delegationType)
++    public
++    view
++    override
++    returns (uint256)
++  {
++    DelegationAwareBalance memory userState = _balances[user];
++    uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
++      ? _balances[user].balance
++      : 0;
++    uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType);
++    return userOwnPower + userDelegatedPower;
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function getPowersCurrent(address user) external view override returns (uint256, uint256) {
++    return (
++      getPowerCurrent(user, GovernancePowerType.VOTING),
++      getPowerCurrent(user, GovernancePowerType.PROPOSITION)
++    );
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function metaDelegateByType(
++    address delegator,
++    address delegatee,
++    GovernancePowerType delegationType,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external override {
++    require(delegator != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[delegator];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(
++          abi.encode(
++            DELEGATE_BY_TYPE_TYPEHASH,
++            delegator,
++            delegatee,
++            delegationType,
++            currentValidNonce,
++            deadline
++          )
++        )
++      )
++    );
++
++    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // Does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[delegator] = currentValidNonce + 1;
++    }
++    _delegateByType(delegator, delegatee, delegationType);
++  }
++
++  /// @inheritdoc IGovernancePowerDelegationToken
++  function metaDelegate(
++    address delegator,
++    address delegatee,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external override {
++    require(delegator != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[delegator];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, currentValidNonce, deadline))
++      )
++    );
++
++    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[delegator] = currentValidNonce + 1;
++    }
++    _delegateByType(delegator, delegatee, GovernancePowerType.VOTING);
++    _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
++  }
++
++  /**
++   * @dev Modifies the delegated power of a `delegatee` account by type (VOTING, PROPOSITION).
++   * Passing the impact on the delegation of `delegatee` account before and after to reduce conditionals and not lose
++   * any precision.
++   * @param impactOnDelegationBefore how much impact a balance of another account had over the delegation of a `delegatee`
++   * before an action.
++   * For example, if the action is a delegation from one account to another, the impact before the action will be 0.
++   * @param impactOnDelegationAfter how much impact a balance of another account will have  over the delegation of a `delegatee`
++   * after an action.
++   * For example, if the action is a delegation from one account to another, the impact after the action will be the whole balance
++   * of the account changing the delegatee.
++   * @param delegatee the user whom delegated governance power will be changed
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _governancePowerTransferByType(
++    uint104 impactOnDelegationBefore,
++    uint104 impactOnDelegationAfter,
++    address delegatee,
++    GovernancePowerType delegationType
++  ) internal {
++    if (delegatee == address(0)) return;
++    if (impactOnDelegationBefore == impactOnDelegationAfter) return;
++
++    // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
++    uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
++    uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
++
++    if (delegationType == GovernancePowerType.VOTING) {
++      _balances[delegatee].delegatedVotingBalance =
++        _balances[delegatee].delegatedVotingBalance -
++        impactOnDelegationBefore72 +
++        impactOnDelegationAfter72;
++    } else {
++      _balances[delegatee].delegatedPropositionBalance =
++        _balances[delegatee].delegatedPropositionBalance -
++        impactOnDelegationBefore72 +
++        impactOnDelegationAfter72;
++    }
++  }
++
++  /**
++   * @dev performs all state changes related to balance transfer and corresponding delegation changes
++   * @param from token sender
++   * @param to token recipient
++   * @param amount amount of tokens sent
++   **/
++  function _transferWithDelegation(
++    address from,
++    address to,
++    uint256 amount
++  ) internal override {
++    if (from == to) {
++      return;
++    }
++
++    if (from != address(0)) {
++      DelegationAwareBalance memory fromUserState = _balances[from];
++      require(fromUserState.balance >= amount, 'ERC20: transfer amount exceeds balance');
++
++      uint104 fromBalanceAfter;
++      unchecked {
++        fromBalanceAfter = fromUserState.balance - uint104(amount);
++      }
++      _balances[from].balance = fromBalanceAfter;
++      if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
++        _governancePowerTransferByType(
++          fromUserState.balance,
++          fromBalanceAfter,
++          _getDelegateeByType(from, fromUserState, GovernancePowerType.VOTING),
++          GovernancePowerType.VOTING
++        );
++        _governancePowerTransferByType(
++          fromUserState.balance,
++          fromBalanceAfter,
++          _getDelegateeByType(from, fromUserState, GovernancePowerType.PROPOSITION),
++          GovernancePowerType.PROPOSITION
++        );
++      }
++    }
++
++    if (to != address(0)) {
++      DelegationAwareBalance memory toUserState = _balances[to];
++      uint104 toBalanceBefore = toUserState.balance;
++      toUserState.balance = toBalanceBefore + uint104(amount);
++      _balances[to] = toUserState;
++
++      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
++        _governancePowerTransferByType(
++          toBalanceBefore,
++          toUserState.balance,
++          _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
++          GovernancePowerType.VOTING
++        );
++        _governancePowerTransferByType(
++          toBalanceBefore,
++          toUserState.balance,
++          _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
++          GovernancePowerType.PROPOSITION
++        );
++      }
++    }
++  }
++
++  /**
++   * @dev Extracts from state and returns delegated governance power (Voting, Proposition)
++   * @param userState the current state of a user
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _getDelegatedPowerByType(
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType
++  ) internal pure returns (uint256) {
++    return
++      POWER_SCALE_FACTOR *
++      (
++        delegationType == GovernancePowerType.VOTING
++          ? userState.delegatedVotingBalance
++          : userState.delegatedPropositionBalance
++      );
++  }
++
++  /**
++   * @dev Extracts from state and returns the delegatee of a delegator by type of governance power (Voting, Proposition)
++   * - If the delegator doesn't have any delegatee, returns address(0)
++   * @param delegator delegator
++   * @param userState the current state of a user
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   **/
++  function _getDelegateeByType(
++    address delegator,
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType
++  ) internal view returns (address) {
++    if (delegationType == GovernancePowerType.VOTING) {
++      return
++        /// With the & operation, we cover both VOTING_DELEGATED delegation and FULL_POWER_DELEGATED
++        /// as VOTING_DELEGATED is equivalent to 01 in binary and FULL_POWER_DELEGATED is equivalent to 11
++        (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
++          ? _votingDelegateeV2[delegator]
++          : address(0);
++    }
++    return
++      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
++        ? _propositionDelegateeV2[delegator]
++        : address(0);
++  }
++
++  /**
++   * @dev Changes user's delegatee address by type of governance power (Voting, Proposition)
++   * @param delegator delegator
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   * @param _newDelegatee the new delegatee
++   **/
++  function _updateDelegateeByType(
++    address delegator,
++    GovernancePowerType delegationType,
++    address _newDelegatee
++  ) internal {
++    address newDelegatee = _newDelegatee == delegator ? address(0) : _newDelegatee;
++    if (delegationType == GovernancePowerType.VOTING) {
++      _votingDelegateeV2[delegator] = newDelegatee;
++    } else {
++      _propositionDelegateeV2[delegator] = newDelegatee;
++    }
++  }
++
++  /**
++   * @dev Updates the specific flag which signaling about existence of delegation of governance power (Voting, Proposition)
++   * @param userState a user state to change
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   * @param willDelegate next state of delegation
++   **/
++  function _updateDelegationFlagByType(
++    DelegationAwareBalance memory userState,
++    GovernancePowerType delegationType,
++    bool willDelegate
++  ) internal pure returns (DelegationAwareBalance memory) {
++    if (willDelegate) {
++      // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
++      userState.delegationState = DelegationState(
++        uint8(userState.delegationState) | (uint8(delegationType) + 1)
++      );
++    } else {
++      // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
++      // then bitwise AND, which means it will keep only another delegation type if it exists
++      userState.delegationState = DelegationState(
++        uint8(userState.delegationState) &
++          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED))
++      );
++    }
++    return userState;
++  }
++
++  /**
++   * @dev This is the equivalent of an ERC20 transfer(), but for a power type: an atomic transfer of a balance (power).
++   * When needed, it decreases the power of the `delegator` and when needed, it increases the power of the `delegatee`
++   * @param delegator delegator
++   * @param _delegatee the user which delegated power will change
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   **/
++  function _delegateByType(
++    address delegator,
++    address _delegatee,
++    GovernancePowerType delegationType
++  ) internal {
++    // Here we unify the property that delegating power to address(0) == delegating power to yourself == no delegation
++    // So from now on, not being delegating is (exclusively) that delegatee == address(0)
++    address delegatee = _delegatee == delegator ? address(0) : _delegatee;
++
++    // We read the whole struct before validating delegatee, because in the optimistic case
++    // (_delegatee != currentDelegatee) we will reuse userState in the rest of the function
++    DelegationAwareBalance memory delegatorState = _balances[delegator];
++    address currentDelegatee = _getDelegateeByType(delegator, delegatorState, delegationType);
++    if (delegatee == currentDelegatee) return;
++
++    bool delegatingNow = currentDelegatee != address(0);
++    bool willDelegateAfter = delegatee != address(0);
++
++    if (delegatingNow) {
++      _governancePowerTransferByType(delegatorState.balance, 0, currentDelegatee, delegationType);
++    }
++
++    if (willDelegateAfter) {
++      _governancePowerTransferByType(0, delegatorState.balance, delegatee, delegationType);
++    }
++
++    _updateDelegateeByType(delegator, delegationType, delegatee);
++
++    if (willDelegateAfter != delegatingNow) {
++      _balances[delegator] = _updateDelegationFlagByType(
++        delegatorState,
++        delegationType,
++        willDelegateAfter
++      );
++    }
++
++    emit DelegateChanged(delegator, delegatee, delegationType);
++  }
++}
+\ No newline at end of file
+diff -ruN BaseAaveToken.sol BaseAaveToken.sol
+--- BaseAaveToken.sol	1970-01-01 01:00:00
++++ BaseAaveToken.sol	2023-03-28 12:58:17
+@@ -0,0 +1,162 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
 +import {Context} from './lib/openzeppelin-contracts/contracts/utils/Context.sol';
 +import {IERC20} from './lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 +import {IERC20Metadata} from './lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
- 
- // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
- abstract contract BaseAaveToken is Context, IERC20Metadata {
++
++// Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
++abstract contract BaseAaveToken is Context, IERC20Metadata {
++  enum DelegationState {
++    NO_DELEGATION,
++    VOTING_DELEGATED,
++    PROPOSITION_DELEGATED,
++    FULL_POWER_DELEGATED
++  }
++
++  // reorder fields to make hooks syntax simpler
++  struct DelegationAwareBalance {
++    uint104 balance;
++    uint72 delegatedPropositionBalance;
++    uint72 delegatedVotingBalance;
++    uint8 delegationState; // refactored from enum
++  }
++
++  mapping(address => DelegationAwareBalance) internal _balances;
++
++  mapping(address => mapping(address => uint256)) internal _allowances;
++
++  uint256 internal _totalSupply;
++
++  string internal _name;
++  string internal _symbol;
++
++  // @dev DEPRECATED
++  // kept for backwards compatibility with old storage layout
++  uint8 private ______DEPRECATED_OLD_ERC20_DECIMALS;
++
++  /**
++   * @dev Returns the name of the token.
++   */
++  function name() public view virtual override returns (string memory) {
++    return _name;
++  }
++
++  /**
++   * @dev Returns the symbol of the token, usually a shorter version of the
++   * name.
++   */
++  function symbol() public view virtual override returns (string memory) {
++    return _symbol;
++  }
++
++  function decimals() public view virtual override returns (uint8) {
++    return 18;
++  }
++
++  function totalSupply() public view virtual override returns (uint256) {
++    return _totalSupply;
++  }
++
++  function balanceOf(address account) public view virtual override returns (uint256) {
++    return _balances[account].balance;
++  }
++
++  function transfer(address to, uint256 amount) public virtual override returns (bool) {
++    address owner = _msgSender();
++    _transfer(owner, to, amount);
++    return true;
++  }
++
++  function allowance(address owner, address spender)
++    public
++    view
++    virtual
++    override
++    returns (uint256)
++  {
++    return _allowances[owner][spender];
++  }
++
++  function approve(address spender, uint256 amount) public virtual override returns (bool) {
++    address owner = _msgSender();
++    _approve(owner, spender, amount);
++    return true;
++  }
++
++  function transferFrom(
++    address from,
++    address to,
++    uint256 amount
++  ) public virtual override returns (bool) {
++    address spender = _msgSender();
++    _spendAllowance(from, spender, amount);
++    _transfer(from, to, amount);
++    return true;
++  }
++
++  function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
++    address owner = _msgSender();
++    _approve(owner, spender, _allowances[owner][spender] + addedValue);
++    return true;
++  }
++
++  function decreaseAllowance(address spender, uint256 subtractedValue)
++    public
++    virtual
++    returns (bool)
++  {
++    address owner = _msgSender();
++    uint256 currentAllowance = _allowances[owner][spender];
++    require(currentAllowance >= subtractedValue, 'ERC20: decreased allowance below zero');
++    unchecked {
++      _approve(owner, spender, currentAllowance - subtractedValue);
++    }
++
++    return true;
++  }
++
++  function _transfer(
++    address from,
++    address to,
++    uint256 amount
++  ) internal virtual {
++    require(from != address(0), 'ERC20: transfer from the zero address');
++    require(to != address(0), 'ERC20: transfer to the zero address');
++
++    _transferWithDelegation(from, to, amount);
++    emit Transfer(from, to, amount);
++  }
++
++  function _approve(
++    address owner,
++    address spender,
++    uint256 amount
++  ) internal virtual {
++    require(owner != address(0), 'ERC20: approve from the zero address');
++    require(spender != address(0), 'ERC20: approve to the zero address');
++
++    _allowances[owner][spender] = amount;
++    emit Approval(owner, spender, amount);
++  }
++
++  function _spendAllowance(
++    address owner,
++    address spender,
++    uint256 amount
++  ) internal virtual {
++    uint256 currentAllowance = allowance(owner, spender);
++    if (currentAllowance != type(uint256).max) {
++      require(currentAllowance >= amount, 'ERC20: insufficient allowance');
++      unchecked {
++        _approve(owner, spender, currentAllowance - amount);
++      }
++    }
++  }
++
++  function _transferWithDelegation(
++    address from,
++    address to,
++    uint256 amount
++  ) internal virtual {}
++}
+diff -ruN BaseAaveTokenV2.sol BaseAaveTokenV2.sol
+--- BaseAaveTokenV2.sol	1970-01-01 01:00:00
++++ BaseAaveTokenV2.sol	2023-03-28 12:58:17
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import {VersionedInitializable} from './utils/VersionedInitializable.sol';
++import {BaseAaveToken} from './BaseAaveToken.sol';
++
++abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
++  /// @dev owner => next valid nonce to submit with permit()
++  mapping(address => uint256) public _nonces;
++
++  ///////// @dev DEPRECATED from AaveToken v1  //////////////////////////
++  //////// kept for backwards compatibility with old storage layout ////
++  uint256[3] private ______DEPRECATED_FROM_AAVE_V1;
++  ///////// @dev END OF DEPRECATED from AaveToken v1  //////////////////////////
++
++  bytes32 public DOMAIN_SEPARATOR;
++
++  ///////// @dev DEPRECATED from AaveToken v2  //////////////////////////
++  //////// kept for backwards compatibility with old storage layout ////
++  uint256[4] private ______DEPRECATED_FROM_AAVE_V2;
++  ///////// @dev END OF DEPRECATED from AaveToken v2  //////////////////////////
++
++  bytes public constant EIP712_REVISION = bytes('1');
++  bytes32 internal constant EIP712_DOMAIN =
++    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
++  bytes32 public constant PERMIT_TYPEHASH =
++    keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
++
++  uint256 public constant REVISION = 3;
++
++  /**
++   * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
++   * @param owner the owner of the funds
++   * @param spender the spender
++   * @param value the amount
++   * @param deadline the deadline timestamp, type(uint256).max for no deadline
++   * @param v signature param
++   * @param s signature param
++   * @param r signature param
++   */
++
++  function permit(
++    address owner,
++    address spender,
++    uint256 value,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external {
++    require(owner != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[owner];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, currentValidNonce, deadline))
++      )
++    );
++
++    require(owner == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[owner] = currentValidNonce + 1;
++    }
++    _approve(owner, spender, value);
++  }
++
++  /**
++   * @dev returns the revision of the implementation contract
++   */
++  function getRevision() internal pure override returns (uint256) {
++    return REVISION;
++  }
++}
+diff -ruN BaseAaveTokenV3.sol BaseAaveTokenV3.sol
+--- BaseAaveTokenV3.sol	1970-01-01 01:00:00
++++ BaseAaveTokenV3.sol	2023-03-28 12:58:17
+@@ -0,0 +1,84 @@
++// SPDX-License-Identifier: MIT
++
++pragma solidity ^0.8.0;
++
++import {VersionedInitializable} from './utils/VersionedInitializable.sol';
++
++import {BaseAaveToken} from './BaseAaveToken.sol';
++
++abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
++  /// @dev owner => next valid nonce to submit with permit()
++  mapping(address => uint256) public _nonces;
++
++  ///////// @dev DEPRECATED from AaveToken v1  //////////////////////////
++  //////// kept for backwards compatibility with old storage layout ////
++  uint256[3] private ______DEPRECATED_FROM_AAVE_V1;
++  ///////// @dev END OF DEPRECATED from AaveToken v1  //////////////////////////
++
++  bytes32 public DOMAIN_SEPARATOR;
++
++  ///////// @dev DEPRECATED from AaveToken v2  //////////////////////////
++  //////// kept for backwards compatibility with old storage layout ////
++  uint256[4] private ______DEPRECATED_FROM_AAVE_V2;
++  ///////// @dev END OF DEPRECATED from AaveToken v2  //////////////////////////
++
++  bytes public constant EIP712_REVISION = bytes('1');
++  bytes32 internal constant EIP712_DOMAIN =
++    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
++  bytes32 public constant PERMIT_TYPEHASH =
++    keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
++
++  uint256 public constant REVISION = 3; // TODO: CHECK, but most probably was 2 before
++
++  /**
++   * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
++   */
++  function initialize() external initializer {}
++
++  /**
++   * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
++   * @param owner the owner of the funds
++   * @param spender the spender
++   * @param value the amount
++   * @param deadline the deadline timestamp, type(uint256).max for no deadline
++   * @param v signature param
++   * @param s signature param
++   * @param r signature param
++   */
++
++  function permit(
++    address owner,
++    address spender,
++    uint256 value,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external {
++    require(owner != address(0), 'INVALID_OWNER');
++    //solium-disable-next-line
++    require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
++    uint256 currentValidNonce = _nonces[owner];
++    bytes32 digest = keccak256(
++      abi.encodePacked(
++        '\x19\x01',
++        DOMAIN_SEPARATOR,
++        keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, currentValidNonce, deadline))
++      )
++    );
++
++    require(owner == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
++    unchecked {
++      // does not make sense to check because it's not realistic to reach uint256.max in nonce
++      _nonces[owner] = currentValidNonce + 1;
++    }
++    _approve(owner, spender, value);
++  }
++
++  /**
++   * @dev returns the revision of the implementation contract
++   */
++  function getRevision() internal pure override returns (uint256) {
++    return REVISION;
++  }
++}
+diff -ruN interfaces/IGovernancePowerDelegationToken.sol interfaces/IGovernancePowerDelegationToken.sol
+--- interfaces/IGovernancePowerDelegationToken.sol	1970-01-01 01:00:00
++++ interfaces/IGovernancePowerDelegationToken.sol	2023-03-28 12:58:17
+@@ -0,0 +1,117 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++interface IGovernancePowerDelegationToken {
++  enum GovernancePowerType {
++    VOTING,
++    PROPOSITION
++  }
++
++  /**
++   * @dev emitted when a user delegates to another
++   * @param delegator the user which delegated governance power
++   * @param delegatee the delegatee
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   **/
++  event DelegateChanged(
++    address indexed delegator,
++    address indexed delegatee,
++    GovernancePowerType delegationType
++  );
++
++  // @dev we removed DelegatedPowerChanged event because to reconstruct the full state of the system,
++  // is enough to have Transfer and DelegateChanged TODO: document it
++
++  /**
++   * @dev delegates the specific power to a delegatee
++   * @param delegatee the user which delegated power will change
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   **/
++  function delegateByType(address delegatee, GovernancePowerType delegationType) external;
++
++  /**
++   * @dev delegates all the governance powers to a specific user
++   * @param delegatee the user to which the powers will be delegated
++   **/
++  function delegate(address delegatee) external;
++
++  /**
++   * @dev returns the delegatee of an user
++   * @param delegator the address of the delegator
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   * @return address of the specified delegatee
++   **/
++  function getDelegateeByType(address delegator, GovernancePowerType delegationType)
++    external
++    view
++    returns (address);
++
++  /**
++   * @dev returns delegates of an user
++   * @param delegator the address of the delegator
++   * @return a tuple of addresses the VOTING and PROPOSITION delegatee
++   **/
++  function getDelegates(address delegator)
++    external
++    view
++    returns (address, address);
++
++  /**
++   * @dev returns the current voting or proposition power of a user.
++   * @param user the user
++   * @param delegationType the type of delegation (VOTING, PROPOSITION)
++   * @return the current voting or proposition power of a user
++   **/
++  function getPowerCurrent(address user, GovernancePowerType delegationType)
++    external
++    view
++    returns (uint256);
++
++  /**
++   * @dev returns the current voting or proposition power of a user.
++   * @param user the user
++   * @return the current voting and proposition power of a user
++   **/
++  function getPowersCurrent(address user)
++    external
++    view
++    returns (uint256, uint256);
++
++  /**
++   * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
++   * @param delegator the owner of the funds
++   * @param delegatee the user to who owner delegates his governance power
++   * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
++   * @param deadline the deadline timestamp, type(uint256).max for no deadline
++   * @param v signature param
++   * @param s signature param
++   * @param r signature param
++   */
++  function metaDelegateByType(
++    address delegator,
++    address delegatee,
++    GovernancePowerType delegationType,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external;
++
++  /**
++   * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
++   * @param delegator the owner of the funds
++   * @param delegatee the user to who delegator delegates his voting and proposition governance power
++   * @param deadline the deadline timestamp, type(uint256).max for no deadline
++   * @param v signature param
++   * @param s signature param
++   * @param r signature param
++   */
++  function metaDelegate(
++    address delegator,
++    address delegatee,
++    uint256 deadline,
++    uint8 v,
++    bytes32 r,
++    bytes32 s
++  ) external;
++}
+diff -ruN interfaces/ITransferHook.sol interfaces/ITransferHook.sol
+--- interfaces/ITransferHook.sol	1970-01-01 01:00:00
++++ interfaces/ITransferHook.sol	2023-03-28 12:58:17
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++interface ITransferHook {
++  function onTransfer(
++    address from,
++    address to,
++    uint256 amount
++  ) external;
++}
+diff -ruN src/BaseAaveToken.sol src/BaseAaveToken.sol
+--- src/BaseAaveToken.sol	2023-03-28 13:07:07
++++ src/BaseAaveToken.sol	2023-03-28 13:03:35
 @@ -16,10 +16,10 @@
  
    // reorder fields to make hooks syntax simpler
@@ -76,7 +1273,289 @@ diff -uN BaseAaveToken.sol /BaseAaveToken.sol
    }
  
    mapping(address => DelegationAwareBalance) internal _balances;
-Common subdirectories: interfaces and /interfaces
-Common subdirectories: lib and /lib
-Common subdirectories: test and /test
-Common subdirectories: utils and /utils
+diff -ruN test/InternalDelegationFunctionsTest.t.sol test/InternalDelegationFunctionsTest.t.sol
+--- test/InternalDelegationFunctionsTest.t.sol	1970-01-01 01:00:00
++++ test/InternalDelegationFunctionsTest.t.sol	2023-03-28 12:58:17
+@@ -0,0 +1,127 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import {Strings} from '../../lib/openzeppelin-contracts/contracts/utils/Strings.sol';
++import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
++import {AaveTokenV3} from '../AaveTokenV3.sol';
++
++import {AaveUtils, console} from './utils/AaveUtils.sol';
++
++contract StorageTest is AaveTokenV3, AaveUtils {
++  function setUp() public {}
++
++  function testFor_getDelegatedPowerByType() public {
++    DelegationAwareBalance memory userState;
++    userState.delegatedPropositionBalance = 100;
++    userState.delegatedVotingBalance = 200;
++    assertEq(
++      _getDelegatedPowerByType(userState, GovernancePowerType.VOTING),
++      userState.delegatedVotingBalance * POWER_SCALE_FACTOR
++    );
++    assertEq(
++      _getDelegatedPowerByType(userState, GovernancePowerType.PROPOSITION),
++      userState.delegatedPropositionBalance * POWER_SCALE_FACTOR
++    );
++  }
++
++  function testFor_getDelegateeByType() public {
++    address user = address(0x1);
++    address user2 = address(0x2);
++    address user3 = address(0x3);
++    DelegationAwareBalance memory userState;
++
++    _votingDelegateeV2[user] = address(user2);
++    _propositionDelegateeV2[user] = address(user3);
++
++    userState.delegationState = DelegationState.VOTING_DELEGATED;
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), user2);
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), address(0));
++
++    userState.delegationState = DelegationState.PROPOSITION_DELEGATED;
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), address(0));
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), user3);
++
++    userState.delegationState = DelegationState.FULL_POWER_DELEGATED;
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), user2);
++    assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), user3);
++  }
++
++  function _setDelegationStateAndTest(
++    DelegationState initialState,
++    GovernancePowerType governancePowerType,
++    bool willDelegate,
++    DelegationState expectedState
++  ) internal {
++    DelegationAwareBalance memory userState;
++    DelegationAwareBalance memory updatedUserState;
++    userState.delegationState = initialState;
++    updatedUserState = _updateDelegationFlagByType(userState, governancePowerType, willDelegate);
++    assertTrue(
++      updatedUserState.delegationState == expectedState,
++      Strings.toString(uint8(updatedUserState.delegationState))
++    );
++  }
++
++  function testFor_updateDelegationFlagByType() public {
++    _setDelegationStateAndTest(
++      DelegationState.NO_DELEGATION,
++      GovernancePowerType.VOTING,
++      true,
++      DelegationState.VOTING_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.NO_DELEGATION,
++      GovernancePowerType.VOTING,
++      false,
++      DelegationState.NO_DELEGATION
++    );
++    _setDelegationStateAndTest(
++      DelegationState.VOTING_DELEGATED,
++      GovernancePowerType.VOTING,
++      true,
++      DelegationState.VOTING_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.FULL_POWER_DELEGATED,
++      GovernancePowerType.VOTING,
++      false,
++      DelegationState.PROPOSITION_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.NO_DELEGATION,
++      GovernancePowerType.PROPOSITION,
++      true,
++      DelegationState.PROPOSITION_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.PROPOSITION_DELEGATED,
++      GovernancePowerType.PROPOSITION,
++      false,
++      DelegationState.NO_DELEGATION
++    );
++    _setDelegationStateAndTest(
++      DelegationState.PROPOSITION_DELEGATED,
++      GovernancePowerType.VOTING,
++      true,
++      DelegationState.FULL_POWER_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.FULL_POWER_DELEGATED,
++      GovernancePowerType.VOTING,
++      true,
++      DelegationState.FULL_POWER_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.VOTING_DELEGATED,
++      GovernancePowerType.PROPOSITION,
++      true,
++      DelegationState.FULL_POWER_DELEGATED
++    );
++    _setDelegationStateAndTest(
++      DelegationState.FULL_POWER_DELEGATED,
++      GovernancePowerType.PROPOSITION,
++      true,
++      DelegationState.FULL_POWER_DELEGATED
++    );
++  }
++}
+diff -ruN test/StorageTest.t.sol test/StorageTest.t.sol
+--- test/StorageTest.t.sol	1970-01-01 01:00:00
++++ test/StorageTest.t.sol	2023-03-28 12:58:17
+@@ -0,0 +1,44 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
++import {AaveTokenV3} from '../AaveTokenV3.sol';
++
++import {AaveUtils, console} from './utils/AaveUtils.sol';
++
++contract StorageTest is AaveUtils {
++  function setUp() public {
++    revertAaveImplementationUpdate();
++  }
++
++  function testForBaseMetadata() public {
++    string memory nameBefore = AAVE_TOKEN.name();
++    string memory symbolBefore = AAVE_TOKEN.symbol();
++    uint256 decimalsBefore = AAVE_TOKEN.decimals();
++
++    updateAaveImplementation(AAVE_IMPLEMENTATION_V3);
++
++    assertEq(AAVE_TOKEN.name(), nameBefore);
++    assertEq(AAVE_TOKEN.symbol(), symbolBefore);
++    assertEq(AAVE_TOKEN.decimals(), decimalsBefore);
++  }
++
++  function testForTotalSupply() public {
++    uint256 totalSupplyBefore = AAVE_TOKEN.totalSupply();
++
++    updateAaveImplementation(AAVE_IMPLEMENTATION_V3);
++
++    assertEq(AAVE_TOKEN.totalSupply(), totalSupplyBefore);
++  }
++
++  function testForBalances() public {
++    uint256[] memory balancesBefore = new uint256[](AAVE_HOLDERS.length);
++    for (uint256 i = 0; i < AAVE_HOLDERS.length; i += 1) {
++      balancesBefore[i] = AAVE_TOKEN.balanceOf(AAVE_HOLDERS[i]);
++    }
++    updateAaveImplementation(AAVE_IMPLEMENTATION_V3);
++    for (uint256 i = 0; i < AAVE_HOLDERS.length; i += 1) {
++      assertEq(AAVE_TOKEN.balanceOf(AAVE_HOLDERS[i]), balancesBefore[i]);
++    }
++  }
++}
+diff -ruN test/utils/AaveUtils.sol test/utils/AaveUtils.sol
+--- test/utils/AaveUtils.sol	1970-01-01 01:00:00
++++ test/utils/AaveUtils.sol	2023-03-28 12:58:17
+@@ -0,0 +1,47 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++import 'forge-std/Test.sol';
++
++import {IERC20Metadata} from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
++
++import {AaveTokenV3} from '../../AaveTokenV3.sol';
++
++import {IBaseAdminUpgradeabilityProxy} from './IBaseAdminUpgradeabilityProxy.sol';
++
++abstract contract AaveUtils is Test {
++  address[] public AAVE_HOLDERS;
++  IERC20Metadata public constant AAVE_TOKEN =
++    IERC20Metadata(0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9);
++
++  address public constant AAVE_V2_IMPLEMENTATION = 0xC13eac3B4F9EED480045113B7af00F7B5655Ece8;
++
++  address public constant AAVE_TOKEN_PROXY_ADMIN = 0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7;
++  address public AAVE_IMPLEMENTATION_V3;
++
++  constructor() {
++    AAVE_IMPLEMENTATION_V3 = address(new AaveTokenV3());
++    AAVE_HOLDERS = new address[](10);
++    AAVE_HOLDERS = [
++      0x4da27a545c0c5B758a6BA100e3a049001de870f5,
++      0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B,
++      0x25F2226B597E8F9514B3F68F00f494cF4f286491,
++      0xC697051d1C6296C24aE3bceF39acA743861D9A81,
++      0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8,
++      0x317625234562B1526Ea2FaC4030Ea499C5291de4,
++      0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503,
++      0xF977814e90dA44bFA03b6295A0616a897441aceC,
++      0x26a78D5b6d7a7acEEDD1e6eE3229b372A624d8b7,
++      0x28C6c06298d514Db089934071355E5743bf21d60
++    ];
++  }
++
++  function updateAaveImplementation(address newImplementation) public {
++    vm.prank(AAVE_TOKEN_PROXY_ADMIN);
++    IBaseAdminUpgradeabilityProxy(address(AAVE_TOKEN)).upgradeTo(newImplementation);
++  }
++
++  function revertAaveImplementationUpdate() public {
++    updateAaveImplementation(AAVE_V2_IMPLEMENTATION);
++  }
++}
+diff -ruN test/utils/IBaseAdminUpgradeabilityProxy.sol test/utils/IBaseAdminUpgradeabilityProxy.sol
+--- test/utils/IBaseAdminUpgradeabilityProxy.sol	1970-01-01 01:00:00
++++ test/utils/IBaseAdminUpgradeabilityProxy.sol	2023-03-28 12:58:17
+@@ -0,0 +1,6 @@
++// SPDX-License-Identifier: MIT
++pragma solidity ^0.8.0;
++
++interface IBaseAdminUpgradeabilityProxy {
++    function upgradeTo(address newImplementation) external;
++}
+diff -ruN utils/VersionedInitializable.sol utils/VersionedInitializable.sol
+--- utils/VersionedInitializable.sol	1970-01-01 01:00:00
++++ utils/VersionedInitializable.sol	2023-03-28 12:58:17
+@@ -0,0 +1,42 @@
++// SPDX-License-Identifier: agpl-3.0
++pragma solidity ^0.8.0;
++
++/**
++ * @title VersionedInitializable
++ *
++ * @dev Helper contract to support initializer functions. To use it, replace
++ * the constructor with a function that has the `initializer` modifier.
++ * WARNING: Unlike constructors, initializer functions must be manually
++ * invoked. This applies both to deploying an Initializable contract, as well
++ * as extending an Initializable contract via inheritance.
++ * WARNING: When used with inheritance, manual care must be taken to not invoke
++ * a parent initializer twice, or ensure that all initializers are idempotent,
++ * because this is not dealt with automatically as with constructors.
++ *
++ * @author Aave, inspired by the OpenZeppelin Initializable contract
++ */
++abstract contract VersionedInitializable {
++  /**
++   * @dev Indicates that the contract has been initialized.
++   */
++  uint256 internal lastInitializedRevision = 0;
++
++  /**
++   * @dev Modifier to use in the initializer function of a contract.
++   */
++  modifier initializer() {
++    uint256 revision = getRevision();
++    require(revision > lastInitializedRevision, 'Contract instance has already been initialized');
++
++    lastInitializedRevision = revision;
++
++    _;
++  }
++
++  /// @dev returns the revision number of the contract.
++  /// Needs to be defined in the inherited class as a constant.
++  function getRevision() internal pure virtual returns (uint256);
++
++  // Reserved storage space to allow for layout changes in the future.
++  uint256[50] private ______gap;
++}
