@@ -20,6 +20,7 @@ abstract contract AaveUtils is Test {
   address public AAVE_IMPLEMENTATION_V3;
 
   constructor() {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 16926260);
     AAVE_IMPLEMENTATION_V3 = address(new AaveTokenV3());
     AAVE_HOLDERS = new address[](10);
     AAVE_HOLDERS = [

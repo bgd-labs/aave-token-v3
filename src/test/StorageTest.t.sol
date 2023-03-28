@@ -8,7 +8,6 @@ import {AaveUtils, console} from './utils/AaveUtils.sol';
 
 contract StorageTest is AaveUtils {
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 16926260);
     revertAaveImplementationUpdate();
   }
 
