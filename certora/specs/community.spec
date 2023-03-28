@@ -1,5 +1,5 @@
 /*
-    This is a specification file for the verification of AaveTokenV3.sol 
+    This is a specification file for the verification of AaveTokenV3.sol
     smart contract using the Certora prover. The rules in this spec have been
     contributed by the community. Individual attribution is given in the comments
     to each rule.
@@ -189,7 +189,7 @@ rule metaDelegateNonRepeatable(env e1, env e2, address delegator, address delega
 */
 rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, address bob) {
 
-    require e.msg.sender != ZERO_ADDRESS(); 
+    require e.msg.sender != ZERO_ADDRESS();
     require e.msg.sender != alice && e.msg.sender != bob;
     require alice != ZERO_ADDRESS() && bob != ZERO_ADDRESS();
 
@@ -321,11 +321,11 @@ rule delegateIndependence(method f) {
         isVotingDelegatorAfter = getDelegatingVoting(a);
         isVotingDelegateeAfter = getDelegatedVotingBalance(a) != 0
 
-        votingPowerBefore < votingPowerAfter <=> 
+        votingPowerBefore < votingPowerAfter <=>
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0))
         &&
-        votingPowerBefore > votingPowerAfter <=> 
+        votingPowerBefore > votingPowerAfter <=>
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0))
     }
@@ -355,12 +355,12 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
 
     require !isVotingDelegateeBefore && !isVotingDelegateeAfter;
 
-    /* 
+    /*
     If you're not a delegatee, your voting power only increases when
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
     */
-    assert votingPowerBefore < votingPowerAfter <=> 
+    assert votingPowerBefore < votingPowerAfter <=>
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0));
 
@@ -369,7 +369,7 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
     */
-    assert votingPowerBefore > votingPowerAfter <=> 
+    assert votingPowerBefore > votingPowerAfter <=>
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0));
 }
@@ -396,11 +396,11 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         isPropositionDelegatorAfter = getDelegatingProposition(a);
         isPropositionDelegateeAfter = getDelegatedPropositionBalance(a) != 0
 
-        propositionPowerBefore < propositionPowerAfter <=> 
+        propositionPowerBefore < propositionPowerAfter <=>
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0))
         &&
-        propositionPowerBefore > propositionPowerAfter <=> 
+        propositionPowerBefore > propositionPowerAfter <=>
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0))
     }
@@ -435,16 +435,16 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
     */
-    assert propositionPowerBefore < propositionPowerAfter <=> 
+    assert propositionPowerBefore < propositionPowerAfter <=>
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0));
-    
+
     /*
     If you're not a delegatee, your proposition power only decreases when
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
     */
-    assert propositionPowerBefore > propositionPowerAfter <=> 
+    assert propositionPowerBefore > propositionPowerAfter <=>
         (!isPropositionDelegatorBefore && !isPropositionDelegatorBefore && (balanceBefore > balanceAfter)) ||
         (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0));
 }
@@ -463,7 +463,7 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         f(e, args)
     >
     {
-       allowance(owner, spender) != allowanceBefore =>f.selector==approve(address,uint256).selector 
+       allowance(owner, spender) != allowanceBefore =>f.selector==approve(address,uint256).selector
             || f.selector==increaseAllowance(address,uint256).selector
             || f.selector==decreaseAllowance(address,uint256).selector
             || f.selector==transferFrom(address,address,uint256).selector
@@ -482,11 +482,11 @@ rule allowanceStateChange(env e){
     method f;
     calldataarg args;
 
-    uint256 allowanceBefore=getAllowance(owner,user);
+    uint256 allowanceBefore=allowance(owner,user);
     f(e, args);
-    uint256 allowanceAfter=getAllowance(owner,user);
+    uint256 allowanceAfter=allowance(owner,user);
 
-    assert allowanceBefore!=allowanceAfter => f.selector==approve(address,uint256).selector 
+    assert allowanceBefore!=allowanceAfter => f.selector==approve(address,uint256).selector
     || f.selector==increaseAllowance(address,uint256).selector
     || f.selector==decreaseAllowance(address,uint256).selector
     || f.selector==transferFrom(address,address,uint256).selector

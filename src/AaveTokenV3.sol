@@ -20,6 +20,11 @@ contract AaveTokenV3 is BaseAaveTokenV2, IGovernancePowerDelegationToken {
   bytes32 public constant DELEGATE_TYPEHASH =
     keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
 
+  /**
+   * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
+   */
+  function initialize() external virtual initializer {}
+
   /// @inheritdoc IGovernancePowerDelegationToken
   function delegateByType(address delegatee, GovernancePowerType delegationType)
     external

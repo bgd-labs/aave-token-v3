@@ -1,6 +1,6 @@
 diff -uN AaveTokenV3.sol /AaveTokenV3.sol
---- AaveTokenV3.sol	2022-08-04 12:28:46.000000000 +0300
-+++ /AaveTokenV3.sol	2022-09-21 10:49:34.000000000 +0300
+--- AaveTokenV3.sol	2022-10-11 16:03:49.000000000 +0300
++++ /AaveTokenV3.sol	2022-10-11 16:13:48.000000000 +0300
 @@ -210,7 +210,7 @@
          fromBalanceAfter = fromUserState.balance - uint104(amount);
        }
@@ -49,8 +49,8 @@ diff -uN AaveTokenV3.sol /AaveTokenV3.sol
      return userState;
    }
 diff -uN BaseAaveToken.sol /BaseAaveToken.sol
---- BaseAaveToken.sol	2022-08-04 15:01:43.000000000 +0300
-+++ /BaseAaveToken.sol	2022-09-21 10:51:54.000000000 +0300
+--- BaseAaveToken.sol	2022-10-11 17:36:35.000000000 +0300
++++ /BaseAaveToken.sol	2022-10-11 16:20:40.000000000 +0300
 @@ -1,9 +1,9 @@
  // SPDX-License-Identifier: MIT
  pragma solidity ^0.8.0;
@@ -77,5 +77,6 @@ diff -uN BaseAaveToken.sol /BaseAaveToken.sol
  
    mapping(address => DelegationAwareBalance) internal _balances;
 Common subdirectories: interfaces and /interfaces
+Common subdirectories: lib and /lib
 Common subdirectories: test and /test
 Common subdirectories: utils and /utils
