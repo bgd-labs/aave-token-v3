@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Strings} from '../../lib/openzeppelin-contracts/contracts/utils/Strings.sol';
 import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import {AaveTokenV3} from '../AaveTokenV3.sol';
+import {DelegationState} from '../DelegationAwareBalance.sol';
 
 import {AaveUtils, console} from './utils/AaveUtils.sol';
 
@@ -11,7 +12,7 @@ contract StorageTest is AaveTokenV3, AaveUtils {
   function setUp() public {}
 
   function testFor_getDelegatedPowerByType() public {
-    DelegationAwareBalance memory userState;
+    DelegationBalance memory userState;
     userState.delegatedPropositionBalance = 100;
     userState.delegatedVotingBalance = 200;
     assertEq(
@@ -28,7 +29,7 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     address user = address(0x1);
     address user2 = address(0x2);
     address user3 = address(0x3);
-    DelegationAwareBalance memory userState;
+    DelegationBalance memory userState;
 
     _votingDelegateeV2[user] = address(user2);
     _propositionDelegateeV2[user] = address(user3);
@@ -52,8 +53,8 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     bool willDelegate,
     DelegationState expectedState
   ) internal {
-    DelegationAwareBalance memory userState;
-    DelegationAwareBalance memory updatedUserState;
+    DelegationBalance memory userState;
+    DelegationBalance memory updatedUserState;
     userState.delegationState = initialState;
     updatedUserState = _updateDelegationFlagByType(userState, governancePowerType, willDelegate);
     assertTrue(

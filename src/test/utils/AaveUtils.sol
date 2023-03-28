@@ -14,7 +14,7 @@ abstract contract AaveUtils is Test {
   IERC20Metadata public constant AAVE_TOKEN =
     IERC20Metadata(0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9);
 
-  address public constant AAVE_V2_IMPLEMENTATION = 0xC13eac3B4F9EED480045113B7af00F7B5655Ece8;
+  address public constant AAVE_V2_IMPLEMENTATION = 0x96F68837877fd0414B55050c9e794AECdBcfCA59;
 
   address public constant AAVE_TOKEN_PROXY_ADMIN = 0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7;
   address public AAVE_IMPLEMENTATION_V3;

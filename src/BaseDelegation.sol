@@ -1,19 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VersionedInitializable} from './utils/VersionedInitializable.sol';
 import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
+import {DelegationState} from './DelegationAwareBalance.sol';
 
 abstract contract BaseDelegation is IGovernancePowerDelegationToken {
-  enum DelegationState {
-    NO_DELEGATION,
-    VOTING_DELEGATED,
-    PROPOSITION_DELEGATED,
-    FULL_POWER_DELEGATED
-  }
-
-  struct DelegationAwareBalance {
-    uint104 balance;
+  struct DelegationBalance {
     uint72 delegatedPropositionBalance;
     uint72 delegatedVotingBalance;
     DelegationState delegationState;
@@ -33,21 +25,19 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   bytes32 public constant DELEGATE_TYPEHASH =
     keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
 
-  function DOMAIN_SEPARATOR() public view virtual returns (bytes32);
+  function _getDomainSeparator() internal view virtual returns (bytes32);
 
-  function _getDelegationAwareBalance(address user)
+  function _getDelegationBalance(address user)
     internal
     view
     virtual
-    returns (DelegationAwareBalance memory);
+    returns (DelegationBalance memory);
 
-  function _getNonces(address user) internal view virtual returns (uint256);
+  function _getBalance(address user) internal view virtual returns (uint256);
 
-  function _setNonces(address user, uint256 nonce) internal virtual;
+  function _incrementNonces(address user) internal virtual returns (uint256);
 
-  function _setDelegationAwareBalance(address user, DelegationAwareBalance memory balance)
-    internal
-    virtual;
+  function _setDelegationBalance(address user, DelegationBalance memory balance) internal virtual;
 
   /// @inheritdoc IGovernancePowerDelegationToken
   function delegateByType(address delegatee, GovernancePowerType delegationType)
@@ -71,12 +61,12 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     override
     returns (address)
   {
-    return _getDelegateeByType(delegator, _getDelegationAwareBalance(delegator), delegationType);
+    return _getDelegateeByType(delegator, _getDelegationBalance(delegator), delegationType);
   }
 
   /// @inheritdoc IGovernancePowerDelegationToken
   function getDelegates(address delegator) external view override returns (address, address) {
-    DelegationAwareBalance memory delegatorBalance = _getDelegationAwareBalance(delegator);
+    DelegationBalance memory delegatorBalance = _getDelegationBalance(delegator);
     return (
       _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.VOTING),
       _getDelegateeByType(delegator, delegatorBalance, GovernancePowerType.PROPOSITION)
@@ -90,9 +80,9 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     override
     returns (uint256)
   {
-    DelegationAwareBalance memory userState = _getDelegationAwareBalance(user);
+    DelegationBalance memory userState = _getDelegationBalance(user);
     uint256 userOwnPower = uint8(userState.delegationState) & (uint8(delegationType) + 1) == 0
-      ? userState.balance
+      ? _getBalance(user)
       : 0;
     uint256 userDelegatedPower = _getDelegatedPowerByType(userState, delegationType);
     return userOwnPower + userDelegatedPower;
@@ -119,18 +109,17 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     require(delegator != address(0), 'INVALID_OWNER');
     //solium-disable-next-line
     require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
-    uint256 currentValidNonce = _getNonces(delegator);
     bytes32 digest = keccak256(
       abi.encodePacked(
         '\x19\x01',
-        DOMAIN_SEPARATOR(),
+        _getDomainSeparator(),
         keccak256(
           abi.encode(
             DELEGATE_BY_TYPE_TYPEHASH,
             delegator,
             delegatee,
             delegationType,
-            currentValidNonce,
+            _incrementNonces(delegator),
             deadline
           )
         )
@@ -138,10 +127,6 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     );
 
     require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
-    unchecked {
-      // Does not make sense to check because it's not realistic to reach uint256.max in nonce
-      _setNonces(delegator, currentValidNonce + 1);
-    }
     _delegateByType(delegator, delegatee, delegationType);
   }
 
@@ -157,20 +142,17 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     require(delegator != address(0), 'INVALID_OWNER');
     //solium-disable-next-line
     require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
-    uint256 currentValidNonce = _getNonces(delegator);
     bytes32 digest = keccak256(
       abi.encodePacked(
         '\x19\x01',
-        DOMAIN_SEPARATOR(),
-        keccak256(abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, currentValidNonce, deadline))
+        _getDomainSeparator(),
+        keccak256(
+          abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, _incrementNonces(delegator), deadline)
+        )
       )
     );
 
     require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
-    unchecked {
-      // does not make sense to check because it's not realistic to reach uint256.max in nonce
-      _setNonces(delegator, currentValidNonce + 1);
-    }
     _delegateByType(delegator, delegatee, GovernancePowerType.VOTING);
     _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
   }
@@ -190,19 +172,21 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
   function _governancePowerTransferByType(
-    uint104 impactOnDelegationBefore,
-    uint104 impactOnDelegationAfter,
+    uint256 impactOnDelegationBefore,
+    uint256 impactOnDelegationAfter,
     address delegatee,
     GovernancePowerType delegationType
   ) internal {
     if (delegatee == address(0)) return;
     if (impactOnDelegationBefore == impactOnDelegationAfter) return;
 
+    // we use uint72, because this is the most optimal for AaveTokenV3
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
+    // TODO: safe-cast?
     uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
     uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
 
-    DelegationAwareBalance memory delegateeState = _getDelegationAwareBalance(delegatee);
+    DelegationBalance memory delegateeState = _getDelegationBalance(delegatee);
     if (delegationType == GovernancePowerType.VOTING) {
       delegateeState.delegatedVotingBalance =
         delegateeState.delegatedVotingBalance -
@@ -214,18 +198,22 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
         impactOnDelegationBefore72 +
         impactOnDelegationAfter72;
     }
-    _setDelegationAwareBalance(delegatee, delegateeState);
+    _setDelegationBalance(delegatee, delegateeState);
   }
 
   /**
-   * @dev performs all state changes related to balance transfer and corresponding delegation changes
+   * @dev performs all state changes related delegation changes on transfer
    * @param from token sender
    * @param to token recipient
+   * @param fromBalanceBefore balance of the sender before transfer
+   * @param toBalanceBefore balance of the recipient before transfer
    * @param amount amount of tokens sent
    **/
-  function _transferWithDelegation(
+  function _delegationChangeOnTransfer(
     address from,
     address to,
+    uint256 fromBalanceBefore,
+    uint256 toBalanceBefore,
     uint256 amount
   ) internal {
     if (from == to) {
@@ -233,16 +221,8 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     }
 
     if (from != address(0)) {
-      DelegationAwareBalance memory fromUserState = _getDelegationAwareBalance(from);
-      require(fromUserState.balance >= amount, 'ERC20: transfer amount exceeds balance');
-
-      uint104 fromBalanceBefore = fromUserState.balance;
-      uint104 fromBalanceAfter;
-      unchecked {
-        fromBalanceAfter = fromUserState.balance - uint104(amount);
-      }
-      fromUserState.balance = fromBalanceAfter;
-      _setDelegationAwareBalance(from, fromUserState);
+      DelegationBalance memory fromUserState = _getDelegationBalance(from);
+      uint256 fromBalanceAfter = fromBalanceBefore - amount;
       if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
         _governancePowerTransferByType(
           fromBalanceBefore,
@@ -260,21 +240,19 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     }
 
     if (to != address(0)) {
-      DelegationAwareBalance memory toUserState = _getDelegationAwareBalance(to);
-      uint104 toBalanceBefore = toUserState.balance;
-      toUserState.balance = toBalanceBefore + uint104(amount);
-      _setDelegationAwareBalance(to, toUserState);
+      DelegationBalance memory toUserState = _getDelegationBalance(to);
+      uint256 toBalanceAfter = toBalanceBefore + amount;
 
       if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
         _governancePowerTransferByType(
           toBalanceBefore,
-          toUserState.balance,
+          toBalanceAfter,
           _getDelegateeByType(to, toUserState, GovernancePowerType.VOTING),
           GovernancePowerType.VOTING
         );
         _governancePowerTransferByType(
           toBalanceBefore,
-          toUserState.balance,
+          toBalanceAfter,
           _getDelegateeByType(to, toUserState, GovernancePowerType.PROPOSITION),
           GovernancePowerType.PROPOSITION
         );
@@ -288,7 +266,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
    * @param delegationType the type of governance power delegation (VOTING, PROPOSITION)
    **/
   function _getDelegatedPowerByType(
-    DelegationAwareBalance memory userState,
+    DelegationBalance memory userState,
     GovernancePowerType delegationType
   ) internal pure returns (uint256) {
     return
@@ -309,7 +287,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
    **/
   function _getDelegateeByType(
     address delegator,
-    DelegationAwareBalance memory userState,
+    DelegationBalance memory userState,
     GovernancePowerType delegationType
   ) internal view returns (address) {
     if (delegationType == GovernancePowerType.VOTING) {
@@ -352,10 +330,10 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
    * @param willDelegate next state of delegation
    **/
   function _updateDelegationFlagByType(
-    DelegationAwareBalance memory userState,
+    DelegationBalance memory userState,
     GovernancePowerType delegationType,
     bool willDelegate
-  ) internal pure returns (DelegationAwareBalance memory) {
+  ) internal pure returns (DelegationBalance memory) {
     if (willDelegate) {
       // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
       userState.delegationState = DelegationState(
@@ -390,25 +368,26 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
 
     // We read the whole struct before validating delegatee, because in the optimistic case
     // (_delegatee != currentDelegatee) we will reuse userState in the rest of the function
-    DelegationAwareBalance memory delegatorState = _getDelegationAwareBalance(delegator);
+    DelegationBalance memory delegatorState = _getDelegationBalance(delegator);
     address currentDelegatee = _getDelegateeByType(delegator, delegatorState, delegationType);
     if (delegatee == currentDelegatee) return;
 
     bool delegatingNow = currentDelegatee != address(0);
     bool willDelegateAfter = delegatee != address(0);
+    uint256 delegatorBalance = _getBalance(delegator);
 
     if (delegatingNow) {
-      _governancePowerTransferByType(delegatorState.balance, 0, currentDelegatee, delegationType);
+      _governancePowerTransferByType(delegatorBalance, 0, currentDelegatee, delegationType);
     }
 
     if (willDelegateAfter) {
-      _governancePowerTransferByType(0, delegatorState.balance, delegatee, delegationType);
+      _governancePowerTransferByType(0, delegatorBalance, delegatee, delegationType);
     }
 
     _updateDelegateeByType(delegator, delegationType, delegatee);
 
     if (willDelegateAfter != delegatingNow) {
-      _setDelegationAwareBalance(
+      _setDelegationBalance(
         delegator,
         _updateDelegationFlagByType(delegatorState, delegationType, willDelegateAfter)
       );
