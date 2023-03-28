@@ -28,7 +28,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
     keccak256(
-      'DelegateByType(address delegator,address delegatee,GovernancePowerType delegationType,uint256 nonce,uint256 deadline)'
+      'DelegateByType(address delegator,address delegatee,uint8 delegationType,uint256 nonce,uint256 deadline)'
     );
   bytes32 public constant DELEGATE_TYPEHASH =
     keccak256('Delegate(address delegator,address delegatee,uint256 nonce,uint256 deadline)');
