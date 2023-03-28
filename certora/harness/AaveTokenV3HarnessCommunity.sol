@@ -2,57 +2,56 @@
 
 /**
 
-  This is an extension of the AaveTokenV3 with added getters and view function wrappers needed for 
+  This is an extension of the AaveTokenV3 with added getters and view function wrappers needed for
   community-written rules
  */
 
 pragma solidity ^0.8.0;
 
-import {AaveTokenV3} from "../../src/AaveTokenV3.sol";
+import {AaveTokenV3} from '../../src/AaveTokenV3.sol';
 
 contract AaveTokenV3Harness is AaveTokenV3 {
-    function getBalance(address user) view public returns (uint104) {
+  function getBalance(address user) public view returns (uint104) {
     return _balances[user].balance;
-   }
+  }
 
-   function getDelegatedPropositionBalance(address user) view public returns (uint72) {
+  function getDelegatedPropositionBalance(address user) public view returns (uint72) {
     return _balances[user].delegatedPropositionBalance;
-   }
+  }
 
-
-   function getDelegatedVotingBalance(address user) view public returns (uint72) {
+  function getDelegatedVotingBalance(address user) public view returns (uint72) {
     return _balances[user].delegatedVotingBalance;
-   }
+  }
 
+  function getDelegatingProposition(address user) public view returns (bool) {
+    return
+      _balances[user].delegationState == DelegationState.PROPOSITION_DELEGATED ||
+      _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+  }
 
-   function getDelegatingProposition(address user) view public returns (bool) {
-    return _balances[user].delegationState == DelegationState.PROPOSITION_DELEGATED ||
-        _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
-   }
+  function getDelegatingVoting(address user) public view returns (bool) {
+    return
+      _balances[user].delegationState == DelegationState.VOTING_DELEGATED ||
+      _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+  }
 
-
-   function getDelegatingVoting(address user) view public returns (bool) {
-     return _balances[user].delegationState == DelegationState.VOTING_DELEGATED ||
-        _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
-   }
-
-   function getVotingDelegate(address user) view public returns (address) {
+  function getVotingDelegate(address user) public view returns (address) {
     return _votingDelegateeV2[user];
-   }
+  }
 
-   function getPropositionDelegate(address user) view public returns (address) {
+  function getPropositionDelegate(address user) public view returns (address) {
     return _propositionDelegateeV2[user];
-   }
+  }
 
-   function getDelegationState(address user) view public returns (DelegationState) {
+  function getDelegationState(address user) public view returns (DelegationState) {
     return _balances[user].delegationState;
-   }
+  }
 
-   function getNonce(address user) view public returns (uint256) {
+  function getNonce(address user) public view returns (uint256) {
     return _nonces[user];
-   }
+  }
 
-   function ecrecoverWrapper(
+  function ecrecoverWrapper(
     bytes32 hash,
     uint8 v,
     bytes32 r,
@@ -61,7 +60,7 @@ contract AaveTokenV3Harness is AaveTokenV3 {
     return ecrecover(hash, v, r, s);
   }
 
-   function computeMetaDelegateHash(
+  function computeMetaDelegateHash(
     address delegator,
     address delegatee,
     uint256 deadline,
@@ -77,7 +76,7 @@ contract AaveTokenV3Harness is AaveTokenV3 {
     return digest;
   }
 
-    function computeMetaDelegateByTypeHash(
+  function computeMetaDelegateByTypeHash(
     address delegator,
     address delegatee,
     GovernancePowerType delegationType,
@@ -102,5 +101,4 @@ contract AaveTokenV3Harness is AaveTokenV3 {
     );
     return digest;
   }
-
 }
