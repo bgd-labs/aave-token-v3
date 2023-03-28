@@ -31,8 +31,8 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     address user3 = address(0x3);
     DelegationBalance memory userState;
 
-    _votingDelegateeV2[user] = address(user2);
-    _propositionDelegateeV2[user] = address(user3);
+    _votingDelegatee[user] = address(user2);
+    _propositionDelegatee[user] = address(user3);
 
     userState.delegationState = DelegationState.VOTING_DELEGATED;
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), user2);

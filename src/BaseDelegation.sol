@@ -11,8 +11,8 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     DelegationState delegationState;
   }
 
-  mapping(address => address) internal _votingDelegateeV2;
-  mapping(address => address) internal _propositionDelegateeV2;
+  mapping(address => address) internal _votingDelegatee;
+  mapping(address => address) internal _propositionDelegatee;
 
   /// @dev we assume that for the governance system 18 decimals of precision is not needed,
   // by this constant we reduce it by 10, to 8 decimals
@@ -295,12 +295,12 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
         /// With the & operation, we cover both VOTING_DELEGATED delegation and FULL_POWER_DELEGATED
         /// as VOTING_DELEGATED is equivalent to 01 in binary and FULL_POWER_DELEGATED is equivalent to 11
         (uint8(userState.delegationState) & uint8(DelegationState.VOTING_DELEGATED)) != 0
-          ? _votingDelegateeV2[delegator]
+          ? _votingDelegatee[delegator]
           : address(0);
     }
     return
       userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
-        ? _propositionDelegateeV2[delegator]
+        ? _propositionDelegatee[delegator]
         : address(0);
   }
 
@@ -317,9 +317,9 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   ) internal {
     address newDelegatee = _newDelegatee == delegator ? address(0) : _newDelegatee;
     if (delegationType == GovernancePowerType.VOTING) {
-      _votingDelegateeV2[delegator] = newDelegatee;
+      _votingDelegatee[delegator] = newDelegatee;
     } else {
-      _propositionDelegateeV2[delegator] = newDelegatee;
+      _propositionDelegatee[delegator] = newDelegatee;
     }
   }
 
