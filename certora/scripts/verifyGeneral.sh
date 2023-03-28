@@ -9,6 +9,6 @@ certoraRun certora/harness/AaveTokenV3HarnessStorage.sol:AaveTokenV3Harness \
     --solc solc8.13 \
     --optimistic_loop \
     --settings -smt_bitVectorTheory=true \
-    --send_only \
+    --cloud \
     --msg "AaveTokenV3:general.spec $1"
- 
+
