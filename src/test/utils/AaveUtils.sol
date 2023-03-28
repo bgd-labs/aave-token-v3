@@ -16,7 +16,7 @@ abstract contract AaveUtils is Test {
 
   address public constant AAVE_V2_IMPLEMENTATION = 0x96F68837877fd0414B55050c9e794AECdBcfCA59;
 
-  address public constant AAVE_TOKEN_PROXY_ADMIN = 0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7;
+  address public constant AAVE_TOKEN_PROXY_ADMIN = 0x79426A1c24B2978D90d7A5070a46C65B07bC4299;
   address public AAVE_IMPLEMENTATION_V3;
 
   constructor() {
