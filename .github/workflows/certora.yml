@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-      - certora-to-main-fork
 
   workflow_dispatch:
 
