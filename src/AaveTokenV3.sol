@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {BaseAaveTokenV2} from './BaseAaveTokenV2.sol';
 import {BaseDelegation} from './BaseDelegation.sol';
-import {DelegationAwareBalance} from './DelegationAwareBalance.sol';
 
 contract AaveTokenV3 is BaseAaveTokenV2, BaseDelegation {
   /**

@@ -7,10 +7,3 @@ enum DelegationState {
   PROPOSITION_DELEGATED,
   FULL_POWER_DELEGATED
 }
-
-struct DelegationAwareBalance {
-  uint104 balance;
-  uint72 delegatedPropositionBalance;
-  uint72 delegatedVotingBalance;
-  DelegationState delegationState;
-}
