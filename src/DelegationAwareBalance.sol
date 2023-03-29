@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-enum DelegationState {
+enum DelegationMode {
   NO_DELEGATION,
   VOTING_DELEGATED,
   PROPOSITION_DELEGATED,

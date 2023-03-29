@@ -20,18 +20,18 @@ contract AaveTokenV3 is BaseAaveTokenV2, BaseDelegation {
     _delegationChangeOnTransfer(from, to, fromBalanceBefore, toBalanceBefore, amount);
   }
 
-  function _getDelegationBalance(address user)
+  function _getDelegationState(address user)
     internal
     view
     override
-    returns (DelegationBalance memory)
+    returns (DelegationState memory)
   {
     DelegationAwareBalance memory userState = _balances[user];
     return
-      DelegationBalance({
+      DelegationState({
         delegatedPropositionBalance: userState.delegatedPropositionBalance,
         delegatedVotingBalance: userState.delegatedVotingBalance,
-        delegationState: userState.delegationState
+        delegationMode: userState.delegationMode
       });
   }
 
@@ -39,14 +39,14 @@ contract AaveTokenV3 is BaseAaveTokenV2, BaseDelegation {
     return _balances[user].balance;
   }
 
-  function _setDelegationBalance(address user, DelegationBalance memory delegationBalance)
+  function _setDelegationState(address user, DelegationState memory delegationState)
     internal
     override
   {
     DelegationAwareBalance storage userState = _balances[user];
-    userState.delegatedPropositionBalance = delegationBalance.delegatedPropositionBalance;
-    userState.delegatedVotingBalance = delegationBalance.delegatedVotingBalance;
-    userState.delegationState = delegationBalance.delegationState;
+    userState.delegatedPropositionBalance = delegationState.delegatedPropositionBalance;
+    userState.delegatedVotingBalance = delegationState.delegatedVotingBalance;
+    userState.delegationMode = delegationState.delegationMode;
   }
 
   function _incrementNonces(address user) internal override returns (uint256) {

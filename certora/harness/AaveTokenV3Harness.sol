@@ -51,7 +51,7 @@ contract AaveTokenV3Harness is AaveTokenV3 {
   }
 
   // returns user's delegation state
-  function getDelegationState(address user) public view returns (DelegationState) {
+  function getDelegationState(address user) public view returns (DelegationMode) {
     return _balances[user].delegationState;
   }
 }

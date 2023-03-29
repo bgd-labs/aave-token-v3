@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Context} from '../lib/openzeppelin-contracts/contracts/utils/Context.sol';
 import {IERC20} from '../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import {DelegationState} from './DelegationAwareBalance.sol';
+import {DelegationMode} from './DelegationAwareBalance.sol';
 
 // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
 abstract contract BaseAaveToken is Context, IERC20Metadata {
@@ -12,7 +12,7 @@ abstract contract BaseAaveToken is Context, IERC20Metadata {
     uint104 balance;
     uint72 delegatedPropositionBalance;
     uint72 delegatedVotingBalance;
-    DelegationState delegationState;
+    DelegationMode delegationMode;
   }
 
   mapping(address => DelegationAwareBalance) internal _balances;
