@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {SafeCast72} from './utils/SafeCast72.sol';
 import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
 import {DelegationMode} from './DelegationAwareBalance.sol';
 
 /**
  * @notice The contract implements generic delegation functionality for the upcoming governance v3
+ * @author BGD Labs
  * @dev to make it's pluggable to any exising token it has a set of virtual functions
  *   for simple access to balances and permit functionality
  */
@@ -21,7 +23,8 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
 
   /** @dev we assume that for the governance system delegation with 18 decimals of precision is not needed,
    *   by this constant we reduce it by 10, to 8 decimals.
-   *   But if your token is already less then 10, change it to appropriate
+   *   In case of Aave token this will allow to work with up to 47'223'664'828'696,45213696 total supply
+   *   If your token already have less then 10 decimals, please change it to appropriate.
    */
   uint256 public constant POWER_SCALE_FACTOR = 1e10;
 
@@ -213,9 +216,12 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
 
     // we use uint72, because this is the most optimal for AaveTokenV3
     // To make delegated balance fit into uint72 we're decreasing precision of delegated balance by POWER_SCALE_FACTOR
-    // TODO: safe-cast?
-    uint72 impactOnDelegationBefore72 = uint72(impactOnDelegationBefore / POWER_SCALE_FACTOR);
-    uint72 impactOnDelegationAfter72 = uint72(impactOnDelegationAfter / POWER_SCALE_FACTOR);
+    uint72 impactOnDelegationBefore72 = SafeCast72.toUint72(
+      impactOnDelegationBefore / POWER_SCALE_FACTOR
+    );
+    uint72 impactOnDelegationAfter72 = SafeCast72.toUint72(
+      impactOnDelegationAfter / POWER_SCALE_FACTOR
+    );
 
     DelegationState memory delegateeState = _getDelegationState(delegatee);
     if (delegationType == GovernancePowerType.VOTING) {
