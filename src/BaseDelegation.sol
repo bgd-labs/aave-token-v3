@@ -10,6 +10,11 @@ import {DelegationMode} from './DelegationAwareBalance.sol';
  * @author BGD Labs
  * @dev to make it's pluggable to any exising token it has a set of virtual functions
  *   for simple access to balances and permit functionality
+ * @dev ************ IMPORTANT SECURITY CONSIDERATION ************
+ *   current version of the token can be used only with asset which has 18 decimals
+ *   and possible totalSupply lower then 4722366482869645213696,
+ *   otherwise at least POWER_SCALE_FACTOR should be adjusted !!!
+ *   *************************************************************
  */
 abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   struct DelegationState {
