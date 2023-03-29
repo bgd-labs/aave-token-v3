@@ -10,4 +10,4 @@ certoraRun certora/harness/AaveTokenV3Harness.sol:AaveTokenV3Harness \
     --optimistic_loop \
     --cloud \
     --msg "AaveTokenV3:erc20.spec $1"
- 
+

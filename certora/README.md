@@ -6,17 +6,17 @@ In this directory you will find three subdirectories:
 - `base.spec` contains method declarations, CVL functions and definitions used by the main specification files
 - `delegate.spec` contains rules that prove various delegation properties
 - `erc20.spec` contains rules that prove ERC20 general rules, e.g. correctness of transfer and others
-- `general.spec` contains general delegation invariants, e.g. sum of delegated and undelegated balances equals to 
-total supply  
+- `general.spec` contains general delegation invariants, e.g. sum of delegated and undelegated balances equals to
+total supply
 
-2. scripts - Contains all the necessary run scripts to execute the spec files on the Certora Prover. These scripts composed of a run command of Certora Prover, contracts to take into account in the verification context, declaration of the compiler and a set of additional settings. 
+2. scripts - Contains all the necessary run scripts to execute the spec files on the Certora Prover. These scripts composed of a run command of Certora Prover, contracts to take into account in the verification context, declaration of the compiler and a set of additional settings.
 - `verifyDelegate.sh` is a script for running `delegate.spec`
 - `verifyGeneral.sh` is a script for running `general.spec`
 - `erc20.sh` is a script for running `erc20.spec`
 
 3. harness - Contains all the inheriting contracts that add/simplify functionalities to the original contract.
 We use two harnesses:
-- `AaveTokenV3Harness.sol` used by `erc20.sh` and `delegate.sh`. It inherits from the original AaveV3Token 
+- `AaveTokenV3Harness.sol` used by `erc20.sh` and `delegate.sh`. It inherits from the original AaveV3Token
 contract and adds a few getter functions.
 
 - `AaveTokenV3HarnessStorage.sol` used by `general.sh`. It uses a modified a version of AaveV3Token contract
