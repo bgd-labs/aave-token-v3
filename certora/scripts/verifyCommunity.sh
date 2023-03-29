@@ -11,4 +11,4 @@ certoraRun certora/harness/AaveTokenV3HarnessCommunity.sol:AaveTokenV3Harness \
     --cloud \
     --msg "AaveTokenV3HarnessCommunity:community.spec $1"
 # --sanity
- 
+

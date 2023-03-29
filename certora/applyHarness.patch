@@ -1,7 +1,14 @@
-diff -uN AaveTokenV3.sol /AaveTokenV3.sol
---- AaveTokenV3.sol	2022-10-11 16:03:49.000000000 +0300
-+++ /AaveTokenV3.sol	2022-10-11 16:13:48.000000000 +0300
-@@ -210,7 +210,7 @@
+diff -ruN .gitignore .gitignore
+--- .gitignore	1970-01-01 02:00:00
++++ .gitignore	2023-03-29 13:05:55
+@@ -0,0 +1,2 @@
++*
++!.gitignore
+\ No newline at end of file
+diff -ruN src/AaveTokenV3.sol src/AaveTokenV3.sol
+--- src/AaveTokenV3.sol	2023-03-29 13:12:02
++++ src/AaveTokenV3.sol	2023-03-29 13:07:15
+@@ -215,7 +215,7 @@
          fromBalanceAfter = fromUserState.balance - uint104(amount);
        }
        _balances[from].balance = fromBalanceAfter;
@@ -10,7 +17,7 @@ diff -uN AaveTokenV3.sol /AaveTokenV3.sol
          _governancePowerTransferByType(
            fromUserState.balance,
            fromBalanceAfter,
-@@ -232,7 +232,7 @@
+@@ -237,7 +237,7 @@
        toUserState.balance = toBalanceBefore + uint104(amount);
        _balances[to] = toUserState;
  
@@ -19,7 +26,7 @@ diff -uN AaveTokenV3.sol /AaveTokenV3.sol
          _governancePowerTransferByType(
            toBalanceBefore,
            toUserState.balance,
-@@ -288,7 +288,7 @@
+@@ -293,7 +293,7 @@
            : address(0);
      }
      return
@@ -28,7 +35,7 @@ diff -uN AaveTokenV3.sol /AaveTokenV3.sol
          ? _propositionDelegateeV2[delegator]
          : address(0);
    }
-@@ -325,16 +325,12 @@
+@@ -330,16 +330,12 @@
    ) internal pure returns (DelegationAwareBalance memory) {
      if (willDelegate) {
        // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
@@ -48,22 +55,9 @@ diff -uN AaveTokenV3.sol /AaveTokenV3.sol
      }
      return userState;
    }
-diff -uN BaseAaveToken.sol /BaseAaveToken.sol
---- BaseAaveToken.sol	2022-10-11 17:36:35.000000000 +0300
-+++ /BaseAaveToken.sol	2022-10-11 16:20:40.000000000 +0300
-@@ -1,9 +1,9 @@
- // SPDX-License-Identifier: MIT
- pragma solidity ^0.8.0;
- 
--import {Context} from '../lib/openzeppelin-contracts/contracts/utils/Context.sol';
--import {IERC20} from '../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
--import {IERC20Metadata} from '../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-+import {Context} from './lib/openzeppelin-contracts/contracts/utils/Context.sol';
-+import {IERC20} from './lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-+import {IERC20Metadata} from './lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
- 
- // Inspired by OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
- abstract contract BaseAaveToken is Context, IERC20Metadata {
+diff -ruN src/BaseAaveToken.sol src/BaseAaveToken.sol
+--- src/BaseAaveToken.sol	2023-03-29 13:12:02
++++ src/BaseAaveToken.sol	2023-03-29 13:07:15
 @@ -18,7 +18,7 @@
      uint104 balance;
      uint72 delegatedPropositionBalance;
@@ -73,7 +67,3 @@ diff -uN BaseAaveToken.sol /BaseAaveToken.sol
    }
  
    mapping(address => DelegationAwareBalance) internal _balances;
-Common subdirectories: interfaces and /interfaces
-Common subdirectories: lib and /lib
-Common subdirectories: test and /test
-Common subdirectories: utils and /utils

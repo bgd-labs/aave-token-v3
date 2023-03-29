@@ -9,5 +9,4 @@ package-lock.json
 .certora_config/
 .last_confs/
 .certora_*
-certora/munged
 resource_errors.json

@@ -11,4 +11,4 @@ certoraRun certora/harness/AaveTokenV3HarnessStorage.sol:AaveTokenV3Harness \
     --settings -smt_bitVectorTheory=true \
     --cloud \
     --msg "AaveTokenV3:general.spec $1"
- 
+
