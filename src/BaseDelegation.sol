@@ -2,20 +2,27 @@
 pragma solidity ^0.8.0;
 
 import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
-import {DelegationState} from './DelegationAwareBalance.sol';
+import {DelegationMode} from './DelegationAwareBalance.sol';
 
+/**
+ * @notice The contract implements generic delegation functionality for the upcoming governance v3
+ * @dev to make it's pluggable to any exising token it has a set of virtual functions
+ *   for simple access to balances and permit functionality
+ */
 abstract contract BaseDelegation is IGovernancePowerDelegationToken {
-  struct DelegationBalance {
+  struct DelegationState {
     uint72 delegatedPropositionBalance;
     uint72 delegatedVotingBalance;
-    DelegationState delegationState;
+    DelegationMode delegationMode;
   }
 
   mapping(address => address) internal _votingDelegatee;
   mapping(address => address) internal _propositionDelegatee;
 
-  /// @dev we assume that for the governance system 18 decimals of precision is not needed,
-  // by this constant we reduce it by 10, to 8 decimals
+  /** @dev we assume that for the governance system delegation with 18 decimals of precision is not needed,
+   *   by this constant we reduce it by 10, to 8 decimals.
+   *   But if your token is already less then 10, change it to appropriate
+   */
   uint256 public constant POWER_SCALE_FACTOR = 1e10;
 
   bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
