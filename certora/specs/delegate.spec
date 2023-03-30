@@ -760,13 +760,13 @@ rule cantDelegateTwice(address _delegate) {
     require delegateBeforeV != _delegate && delegateBeforeV != e.msg.sender && delegateBeforeV != 0;
     require delegateBeforeP != _delegate && delegateBeforeP != e.msg.sender && delegateBeforeP != 0;
     require _delegate != e.msg.sender && _delegate != 0 && e.msg.sender != 0;
-    require getDelegationState(e.msg.sender) == FULL_POWER_DELEGATED();
+    require getDelegationMode(e.msg.sender) == FULL_POWER_DELEGATED();
 
     uint256 votingPowerBefore = getPowerCurrent(_delegate, VOTING_POWER());
     uint256 propPowerBefore = getPowerCurrent(_delegate, PROPOSITION_POWER());
-    
+
     delegate(e, _delegate);
-    
+
     uint256 votingPowerAfter = getPowerCurrent(_delegate, VOTING_POWER());
     uint256 propPowerAfter = getPowerCurrent(_delegate, PROPOSITION_POWER());
 

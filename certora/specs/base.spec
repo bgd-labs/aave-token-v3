@@ -33,7 +33,7 @@ methods {
     getDelegatingVoting(address user) returns (bool) envfree
     getVotingDelegate(address user) returns (address) envfree
     getPropositionDelegate(address user) returns (address) envfree
-    getDelegationState(address user) returns (uint8) envfree
+    getDelegationMode(address user) returns (uint8) envfree
 }
 
 definition VOTING_POWER() returns uint8 = 0;
@@ -42,17 +42,17 @@ definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
 
 /**
 
-    Definitions of delegation states
+    Definitions of delegation modes
 
 */
 definition NO_DELEGATION() returns uint8 = 0;
 definition VOTING_DELEGATED() returns uint8 = 1;
 definition PROPOSITION_DELEGATED() returns uint8 = 2;
 definition FULL_POWER_DELEGATED() returns uint8 = 3;
-definition DELEGATING_VOTING(uint8 state) returns bool = 
-    state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED();
-definition DELEGATING_PROPOSITION(uint8 state) returns bool =
-    state == PROPOSITION_DELEGATED() || state == FULL_POWER_DELEGATED();
+definition DELEGATING_VOTING(uint8 mode) returns bool =
+    mode == VOTING_DELEGATED() || mode == FULL_POWER_DELEGATED();
+definition DELEGATING_PROPOSITION(uint8 mode) returns bool =
+    mode == PROPOSITION_DELEGATED() || mode == FULL_POWER_DELEGATED();
 
 definition AAVE_MAX_SUPPLY() returns uint256 = 16000000 * 10^18;
 definition SCALED_MAX_SUPPLY() returns uint256 = AAVE_MAX_SUPPLY() / DELEGATED_POWER_DIVIDER();
@@ -68,8 +68,8 @@ function normalize(uint256 amount) returns uint256 {
     return to_uint256(amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
 }
 
-function validDelegationState(address user) returns bool {
-    return getDelegationState(user) < 4;
+function validDelegationMode(address user) returns bool {
+    return getDelegationMode(user) < 4;
 }
 
 function validAmount(uint256 amt) returns bool {
