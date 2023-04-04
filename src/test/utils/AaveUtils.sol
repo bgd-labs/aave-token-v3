@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
 
-import {IERC20Metadata} from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20Metadata} from 'openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import {AaveTokenV3} from '../../AaveTokenV3.sol';
 
