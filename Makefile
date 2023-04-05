@@ -11,7 +11,7 @@ build  :; forge build --sizes
 .PHONY : test
 
 # IMPORTANT It is highly probable that will be necessary to modify the --fork-block-number, depending on the test
-test   :; forge test -vvv --rpc-url=${ETH_RPC_URL} --fork-block-number ${FORK_BLOCK}
-trace   :; forge test -vvvv --rpc-url=${ETH_RPC_URL}
+test   :; forge test -vvv --rpc-url=${RPC_MAINNET} --fork-block-number ${FORK_BLOCK}
+trace   :; forge test -vvvv --rpc-url=${RPC_MAINNET}
 clean  :; forge clean
 snapshot :; forge snapshot
