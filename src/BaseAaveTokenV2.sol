@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VersionedInitializable} from './utils/VersionedInitializable.sol';
-import {BaseAaveToken} from './BaseAaveToken.sol';
 import {EIP712} from '../lib/openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import {ECDSA} from '../lib/openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+
+import {VersionedInitializable} from './utils/VersionedInitializable.sol';
+import {BaseAaveToken} from './BaseAaveToken.sol';
 
 abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable, EIP712 {
   /// @dev owner => next valid nonce to submit with permit()
@@ -28,7 +29,7 @@ abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable, EIP7
 
   uint256 public constant REVISION = 3;
 
-  constructor() EIP712('Aave token V3', 'V2') {}
+  constructor() EIP712('Aave token V3', '2') {}
 
   function DOMAIN_SEPARATOR() public view returns (bytes32) {
     return _domainSeparatorV4();
