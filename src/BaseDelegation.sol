@@ -116,6 +116,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   function getPowerCurrent(address user, GovernancePowerType delegationType)
     public
     view
+    virtual
     override
     returns (uint256)
   {
@@ -310,7 +311,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   function _getDelegatedPowerByType(
     DelegationState memory userState,
     GovernancePowerType delegationType
-  ) internal pure virtual returns (uint256) {
+  ) internal pure returns (uint256) {
     return
       POWER_SCALE_FACTOR *
       (
