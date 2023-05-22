@@ -310,7 +310,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   function _getDelegatedPowerByType(
     DelegationState memory userState,
     GovernancePowerType delegationType
-  ) internal pure returns (uint256) {
+  ) internal pure virtual returns (uint256) {
     return
       POWER_SCALE_FACTOR *
       (
