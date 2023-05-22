@@ -116,6 +116,7 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
   function getPowerCurrent(address user, GovernancePowerType delegationType)
     public
     view
+    virtual
     override
     returns (uint256)
   {
