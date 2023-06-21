@@ -27,7 +27,7 @@ abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable, EIP7
   bytes32 public constant PERMIT_TYPEHASH =
     keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
-  uint256 public constant REVISION = 3;
+  uint256 public constant REVISION = 4;
 
   constructor() EIP712('Aave token V3', '2') {}
 
