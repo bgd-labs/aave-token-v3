@@ -26,7 +26,7 @@ abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable {
   bytes32 public constant PERMIT_TYPEHASH =
     keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
-  uint256 public constant REVISION = 3;
+  uint256 public constant REVISION = 4;
 
   /**
    * @dev implements the permit function as for https://github.com/ethereum/EIPs/blob/8a34d644aacf0f9f8f00815307fd7dd5da07655f/EIPS/eip-2612.md
