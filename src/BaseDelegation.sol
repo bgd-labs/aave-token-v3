@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {ECDSA} from '../lib/openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+
 import {SafeCast72} from './utils/SafeCast72.sol';
 import {IGovernancePowerDelegationToken} from './interfaces/IGovernancePowerDelegationToken.sol';
 import {DelegationMode} from './DelegationAwareBalance.sol';
@@ -149,24 +151,21 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     require(delegator != address(0), 'INVALID_OWNER');
     //solium-disable-next-line
     require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
-    bytes32 digest = keccak256(
-      abi.encodePacked(
-        '\x19\x01',
-        _getDomainSeparator(),
-        keccak256(
-          abi.encode(
-            DELEGATE_BY_TYPE_TYPEHASH,
-            delegator,
-            delegatee,
-            delegationType,
-            _incrementNonces(delegator),
-            deadline
-          )
+    bytes32 digest = ECDSA.toTypedDataHash(
+      _getDomainSeparator(),
+      keccak256(
+        abi.encode(
+          DELEGATE_BY_TYPE_TYPEHASH,
+          delegator,
+          delegatee,
+          delegationType,
+          _incrementNonces(delegator),
+          deadline
         )
       )
     );
 
-    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
+    require(delegator == ECDSA.recover(digest, v, r, s), 'INVALID_SIGNATURE');
     _delegateByType(delegator, delegatee, delegationType);
   }
 
@@ -182,17 +181,14 @@ abstract contract BaseDelegation is IGovernancePowerDelegationToken {
     require(delegator != address(0), 'INVALID_OWNER');
     //solium-disable-next-line
     require(block.timestamp <= deadline, 'INVALID_EXPIRATION');
-    bytes32 digest = keccak256(
-      abi.encodePacked(
-        '\x19\x01',
-        _getDomainSeparator(),
-        keccak256(
-          abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, _incrementNonces(delegator), deadline)
-        )
+    bytes32 digest = ECDSA.toTypedDataHash(
+      _getDomainSeparator(),
+      keccak256(
+        abi.encode(DELEGATE_TYPEHASH, delegator, delegatee, _incrementNonces(delegator), deadline)
       )
     );
 
-    require(delegator == ecrecover(digest, v, r, s), 'INVALID_SIGNATURE');
+    require(delegator == ECDSA.recover(digest, v, r, s), 'INVALID_SIGNATURE');
     _delegateByType(delegator, delegatee, GovernancePowerType.VOTING);
     _delegateByType(delegator, delegatee, GovernancePowerType.PROPOSITION);
   }
