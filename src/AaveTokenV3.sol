@@ -57,6 +57,6 @@ contract AaveTokenV3 is BaseAaveTokenV2, BaseDelegation {
   }
 
   function _getDomainSeparator() internal view override returns (bytes32) {
-    return DOMAIN_SEPARATOR;
+    return DOMAIN_SEPARATOR();
   }
 }
