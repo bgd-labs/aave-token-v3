@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.9.0) (utils/cryptography/EIP712.sol)
+// Contract modified from OpenZeppelin Contracts (last updated v4.9.0) (utils/cryptography/EIP712.sol) to remove local
+// fallback storage variables, so contract does not affect on existing storage layout. This works as its used on contracts
+// that have name and revision < 32 bytes
 
 pragma solidity ^0.8.10;
 
@@ -63,7 +65,7 @@ abstract contract EIP712 is IERC5267 {
    * contract upgrade].
    */
   /// @dev BGD: removed usage of fallback variables to not modify previous storage layout. As we know that the length of
-  ///           name and version will not be bigger than 32 bytes, there is no need to use the fallback system.
+  ///           name and version will not be bigger than 32 bytes we use toShortString as there is no need to use the fallback system.
   constructor(string memory name, string memory version) {
     _name = name.toShortString();
     _version = version.toShortString();
