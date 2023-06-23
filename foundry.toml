@@ -6,6 +6,8 @@ remappings = [
     'openzeppelin-contracts/=lib/openzeppelin-contracts/'
 ]
 
+fs_permissions = [{access = "write", path = "./reports"}]
+
 [rpc_endpoints]
 mainnet = "${RPC_MAINNET}"
 

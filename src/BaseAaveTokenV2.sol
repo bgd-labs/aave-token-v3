@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {EIP712} from 'openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol';
 import {ECDSA} from 'openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol';
 
 import {VersionedInitializable} from './utils/VersionedInitializable.sol';
+import {EIP712} from './utils/EIP712.sol';
 import {BaseAaveToken} from './BaseAaveToken.sol';
 
 abstract contract BaseAaveTokenV2 is BaseAaveToken, VersionedInitializable, EIP712 {
