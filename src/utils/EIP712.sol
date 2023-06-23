@@ -50,9 +50,6 @@ abstract contract EIP712 is IERC5267 {
   ShortString private immutable _name;
   ShortString private immutable _version;
 
-  //  string private constant _nameFallback;
-  //  string private _versionFallback;
-
   /**
    * @dev Initializes the domain separator and parameter caches.
    *
@@ -65,9 +62,11 @@ abstract contract EIP712 is IERC5267 {
    * NOTE: These parameters cannot be changed except through a xref:learn::upgrading-smart-contracts.adoc[smart
    * contract upgrade].
    */
+  /// @dev BGD: removed usage of fallback variables to not modify previous storage layout. As we know that the length of
+  ///           name and version will not be bigger than 32 bytes, there is no need to use the fallback system.
   constructor(string memory name, string memory version) {
-    _name = name.toShortString(); //name.toShortStringWithFallback(_nameFallback);
-    _version = version.toShortString(); //version.toShortStringWithFallback(_versionFallback);
+    _name = name.toShortString();
+    _version = version.toShortString();
     _hashedName = keccak256(bytes(name));
     _hashedVersion = keccak256(bytes(version));
 
@@ -149,6 +148,7 @@ abstract contract EIP712 is IERC5267 {
    *
    * _Available since v5.0._
    */
+  /// @dev BGD: we use toString instead of toStringWithFallback as we dont have fallback, to not modify previous storage layout
   // solhint-disable-next-line func-name-mixedcase
   function _EIP712Name() internal view returns (string memory) {
     return _name.toString(); // _name.toStringWithFallback(_nameFallback);
@@ -162,8 +162,9 @@ abstract contract EIP712 is IERC5267 {
    *
    * _Available since v5.0._
    */
+  /// @dev BGD: we use toString instead of toStringWithFallback as we dont have fallback, to not modify previous storage layout
   // solhint-disable-next-line func-name-mixedcase
   function _EIP712Version() internal view returns (string memory) {
-    return _version.toString(); // _version.toStringWithFallback(_versionFallback);
+    return _version.toString();
   }
 }
