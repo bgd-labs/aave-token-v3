@@ -117,17 +117,19 @@ abstract contract BaseAaveToken is Context, IERC20Metadata {
     require(from != address(0), 'ERC20: transfer from the zero address');
     require(to != address(0), 'ERC20: transfer to the zero address');
 
-    uint104 fromBalanceBefore = _balances[from].balance;
-    uint104 toBalanceBefore = _balances[to].balance;
+    if (from != to) {
+      uint104 fromBalanceBefore = _balances[from].balance;
+      uint104 toBalanceBefore = _balances[to].balance;
 
-    require(fromBalanceBefore >= amount, 'ERC20: transfer amount exceeds balance');
-    unchecked {
-      _balances[from].balance = fromBalanceBefore - uint104(amount);
+      require(fromBalanceBefore >= amount, 'ERC20: transfer amount exceeds balance');
+      unchecked {
+        _balances[from].balance = fromBalanceBefore - uint104(amount);
+      }
+
+      _balances[to].balance += toBalanceBefore + uint104(amount);
+
+      _afterTokenTransfer(from, to, fromBalanceBefore, toBalanceBefore, amount);
     }
-
-    _balances[to].balance = toBalanceBefore + uint104(amount);
-
-    _afterTokenTransfer(from, to, fromBalanceBefore, toBalanceBefore, amount);
     emit Transfer(from, to, amount);
   }
 
