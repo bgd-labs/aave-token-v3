@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Strings} from '../../lib/openzeppelin-contracts/contracts/utils/Strings.sol';
-import {IERC20Metadata} from '../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import {Strings} from 'openzeppelin-contracts/contracts/utils/Strings.sol';
+import {IERC20Metadata} from 'openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import {AaveTokenV3} from '../AaveTokenV3.sol';
+import {DelegationMode} from '../DelegationAwareBalance.sol';
 
 import {AaveUtils, console} from './utils/AaveUtils.sol';
 
@@ -11,7 +12,7 @@ contract StorageTest is AaveTokenV3, AaveUtils {
   function setUp() public {}
 
   function testFor_getDelegatedPowerByType() public {
-    DelegationAwareBalance memory userState;
+    DelegationState memory userState;
     userState.delegatedPropositionBalance = 100;
     userState.delegatedVotingBalance = 200;
     assertEq(
@@ -28,100 +29,100 @@ contract StorageTest is AaveTokenV3, AaveUtils {
     address user = address(0x1);
     address user2 = address(0x2);
     address user3 = address(0x3);
-    DelegationAwareBalance memory userState;
+    DelegationState memory userState;
 
-    _votingDelegateeV2[user] = address(user2);
-    _propositionDelegateeV2[user] = address(user3);
+    _votingDelegatee[user] = address(user2);
+    _propositionDelegatee[user] = address(user3);
 
-    userState.delegationState = DelegationState.VOTING_DELEGATED;
+    userState.delegationMode = DelegationMode.VOTING_DELEGATED;
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), user2);
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), address(0));
 
-    userState.delegationState = DelegationState.PROPOSITION_DELEGATED;
+    userState.delegationMode = DelegationMode.PROPOSITION_DELEGATED;
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), address(0));
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), user3);
 
-    userState.delegationState = DelegationState.FULL_POWER_DELEGATED;
+    userState.delegationMode = DelegationMode.FULL_POWER_DELEGATED;
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.VOTING), user2);
     assertEq(_getDelegateeByType(user, userState, GovernancePowerType.PROPOSITION), user3);
   }
 
-  function _setDelegationStateAndTest(
-    DelegationState initialState,
+  function _setDelegationModeAndTest(
+    DelegationMode initialState,
     GovernancePowerType governancePowerType,
     bool willDelegate,
-    DelegationState expectedState
+    DelegationMode expectedState
   ) internal {
-    DelegationAwareBalance memory userState;
-    DelegationAwareBalance memory updatedUserState;
-    userState.delegationState = initialState;
-    updatedUserState = _updateDelegationFlagByType(userState, governancePowerType, willDelegate);
+    DelegationState memory userState;
+    DelegationState memory updatedUserState;
+    userState.delegationMode = initialState;
+    updatedUserState = _updateDelegationModeByType(userState, governancePowerType, willDelegate);
     assertTrue(
-      updatedUserState.delegationState == expectedState,
-      Strings.toString(uint8(updatedUserState.delegationState))
+      updatedUserState.delegationMode == expectedState,
+      Strings.toString(uint8(updatedUserState.delegationMode))
     );
   }
 
-  function testFor_updateDelegationFlagByType() public {
-    _setDelegationStateAndTest(
-      DelegationState.NO_DELEGATION,
+  function testFor_updateDelegationModeByType() public {
+    _setDelegationModeAndTest(
+      DelegationMode.NO_DELEGATION,
       GovernancePowerType.VOTING,
       true,
-      DelegationState.VOTING_DELEGATED
+      DelegationMode.VOTING_DELEGATED
     );
-    _setDelegationStateAndTest(
-      DelegationState.NO_DELEGATION,
-      GovernancePowerType.VOTING,
-      false,
-      DelegationState.NO_DELEGATION
-    );
-    _setDelegationStateAndTest(
-      DelegationState.VOTING_DELEGATED,
-      GovernancePowerType.VOTING,
-      true,
-      DelegationState.VOTING_DELEGATED
-    );
-    _setDelegationStateAndTest(
-      DelegationState.FULL_POWER_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.NO_DELEGATION,
       GovernancePowerType.VOTING,
       false,
-      DelegationState.PROPOSITION_DELEGATED
+      DelegationMode.NO_DELEGATION
     );
-    _setDelegationStateAndTest(
-      DelegationState.NO_DELEGATION,
+    _setDelegationModeAndTest(
+      DelegationMode.VOTING_DELEGATED,
+      GovernancePowerType.VOTING,
+      true,
+      DelegationMode.VOTING_DELEGATED
+    );
+    _setDelegationModeAndTest(
+      DelegationMode.FULL_POWER_DELEGATED,
+      GovernancePowerType.VOTING,
+      false,
+      DelegationMode.PROPOSITION_DELEGATED
+    );
+    _setDelegationModeAndTest(
+      DelegationMode.NO_DELEGATION,
       GovernancePowerType.PROPOSITION,
       true,
-      DelegationState.PROPOSITION_DELEGATED
+      DelegationMode.PROPOSITION_DELEGATED
     );
-    _setDelegationStateAndTest(
-      DelegationState.PROPOSITION_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.PROPOSITION_DELEGATED,
       GovernancePowerType.PROPOSITION,
       false,
-      DelegationState.NO_DELEGATION
+      DelegationMode.NO_DELEGATION
     );
-    _setDelegationStateAndTest(
-      DelegationState.PROPOSITION_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.PROPOSITION_DELEGATED,
       GovernancePowerType.VOTING,
       true,
-      DelegationState.FULL_POWER_DELEGATED
+      DelegationMode.FULL_POWER_DELEGATED
     );
-    _setDelegationStateAndTest(
-      DelegationState.FULL_POWER_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.FULL_POWER_DELEGATED,
       GovernancePowerType.VOTING,
       true,
-      DelegationState.FULL_POWER_DELEGATED
+      DelegationMode.FULL_POWER_DELEGATED
     );
-    _setDelegationStateAndTest(
-      DelegationState.VOTING_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.VOTING_DELEGATED,
       GovernancePowerType.PROPOSITION,
       true,
-      DelegationState.FULL_POWER_DELEGATED
+      DelegationMode.FULL_POWER_DELEGATED
     );
-    _setDelegationStateAndTest(
-      DelegationState.FULL_POWER_DELEGATED,
+    _setDelegationModeAndTest(
+      DelegationMode.FULL_POWER_DELEGATED,
       GovernancePowerType.PROPOSITION,
       true,
-      DelegationState.FULL_POWER_DELEGATED
+      DelegationMode.FULL_POWER_DELEGATED
     );
   }
 }

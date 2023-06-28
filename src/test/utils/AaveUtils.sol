@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
 
-import {IERC20Metadata} from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20Metadata} from 'openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import {AaveTokenV3} from '../../AaveTokenV3.sol';
 
@@ -14,12 +14,13 @@ abstract contract AaveUtils is Test {
   IERC20Metadata public constant AAVE_TOKEN =
     IERC20Metadata(0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9);
 
-  address public constant AAVE_V2_IMPLEMENTATION = 0xC13eac3B4F9EED480045113B7af00F7B5655Ece8;
+  address public constant AAVE_V2_IMPLEMENTATION = 0x96F68837877fd0414B55050c9e794AECdBcfCA59;
 
-  address public constant AAVE_TOKEN_PROXY_ADMIN = 0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7;
+  address public constant AAVE_TOKEN_PROXY_ADMIN = 0x79426A1c24B2978D90d7A5070a46C65B07bC4299;
   address public AAVE_IMPLEMENTATION_V3;
 
   constructor() {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 16926260);
     AAVE_IMPLEMENTATION_V3 = address(new AaveTokenV3());
     AAVE_HOLDERS = new address[](10);
     AAVE_HOLDERS = [

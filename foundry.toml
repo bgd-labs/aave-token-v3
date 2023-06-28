@@ -1,9 +1,17 @@
-[default]
+[profile.default]
 src = 'src'
 out = 'out'
 libs = ['lib']
 remappings = [
-    'openzeppelin-contracts/=lib/openzeppelin-contracts/contracts'
+    'openzeppelin-contracts/=lib/openzeppelin-contracts/'
 ]
+
+fs_permissions = [{access = "write", path = "./reports"}]
+
+[rpc_endpoints]
+mainnet = "${RPC_MAINNET}"
+
+[etherscan]
+mainnet={key="${ETHERSCAN_API_KEY_MAINNET}",chainId=1}
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

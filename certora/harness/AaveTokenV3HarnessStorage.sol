@@ -42,11 +42,11 @@ contract AaveTokenV3Harness is AaveTokenV3 {
   }
 
   function getVotingDelegate(address user) public view returns (address) {
-    return _votingDelegateeV2[user];
+    return _votingDelegatee[user];
   }
 
   function getPropositionDelegate(address user) public view returns (address) {
-    return _propositionDelegateeV2[user];
+    return _propositionDelegatee[user];
   }
 
   function getDelegationState(address user) public view returns (uint8) {
