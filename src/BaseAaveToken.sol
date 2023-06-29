@@ -126,7 +126,7 @@ abstract contract BaseAaveToken is Context, IERC20Metadata {
         _balances[from].balance = fromBalanceBefore - uint104(amount);
       }
 
-      _balances[to].balance += toBalanceBefore + uint104(amount);
+      _balances[to].balance = toBalanceBefore + uint104(amount);
 
       _afterTokenTransfer(from, to, fromBalanceBefore, toBalanceBefore, amount);
     }

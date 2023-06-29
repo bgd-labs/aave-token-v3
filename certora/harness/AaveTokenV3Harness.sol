@@ -9,6 +9,7 @@
 pragma solidity ^0.8.0;
 
 import {AaveTokenV3} from '../../src/AaveTokenV3.sol';
+import {DelegationMode} from '../../src/DelegationAwareBalance.sol';
 
 contract AaveTokenV3Harness is AaveTokenV3 {
   // returns user's token balance, used in some community rules
@@ -29,15 +30,15 @@ contract AaveTokenV3Harness is AaveTokenV3 {
   //returns user's delegating proposition status
   function getDelegatingProposition(address user) public view returns (bool) {
     return
-      _balances[user].delegationState == DelegationState.PROPOSITION_DELEGATED ||
-      _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+      _balances[user].delegationMode == DelegationMode.PROPOSITION_DELEGATED ||
+      _balances[user].delegationMode == DelegationMode.FULL_POWER_DELEGATED;
   }
 
   // returns user's delegating voting status
   function getDelegatingVoting(address user) public view returns (bool) {
     return
-      _balances[user].delegationState == DelegationState.VOTING_DELEGATED ||
-      _balances[user].delegationState == DelegationState.FULL_POWER_DELEGATED;
+      _balances[user].delegationMode == DelegationMode.VOTING_DELEGATED ||
+      _balances[user].delegationMode == DelegationMode.FULL_POWER_DELEGATED;
   }
 
   // returns user's voting delegate
@@ -51,7 +52,7 @@ contract AaveTokenV3Harness is AaveTokenV3 {
   }
 
   // returns user's delegation state
-  function getDelegationState(address user) public view returns (DelegationMode) {
-    return _balances[user].delegationState;
+  function getDelegationMode(address user) public view returns (DelegationMode) {
+    return _balances[user].delegationMode;
   }
 }

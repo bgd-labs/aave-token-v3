@@ -1,69 +1,7 @@
 diff -ruN .gitignore .gitignore
---- .gitignore	1970-01-01 02:00:00
-+++ .gitignore	2023-03-29 13:05:55
+--- .gitignore	1970-01-01 02:00:00.000000000 +0200
++++ .gitignore	2023-06-29 18:12:58.710152977 +0300
 @@ -0,0 +1,2 @@
 +*
 +!.gitignore
 \ No newline at end of file
-diff -ruN src/AaveTokenV3.sol src/AaveTokenV3.sol
---- src/AaveTokenV3.sol	2023-03-29 13:12:02
-+++ src/AaveTokenV3.sol	2023-03-29 13:07:15
-@@ -215,7 +215,7 @@
-         fromBalanceAfter = fromUserState.balance - uint104(amount);
-       }
-       _balances[from].balance = fromBalanceAfter;
--      if (fromUserState.delegationState != DelegationState.NO_DELEGATION) {
-+      if (fromUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
-         _governancePowerTransferByType(
-           fromUserState.balance,
-           fromBalanceAfter,
-@@ -237,7 +237,7 @@
-       toUserState.balance = toBalanceBefore + uint104(amount);
-       _balances[to] = toUserState;
- 
--      if (toUserState.delegationState != DelegationState.NO_DELEGATION) {
-+      if (toUserState.delegationState != uint8(DelegationState.NO_DELEGATION)) {
-         _governancePowerTransferByType(
-           toBalanceBefore,
-           toUserState.balance,
-@@ -293,7 +293,7 @@
-           : address(0);
-     }
-     return
--      userState.delegationState >= DelegationState.PROPOSITION_DELEGATED
-+      userState.delegationState >= uint8(DelegationState.PROPOSITION_DELEGATED)
-         ? _propositionDelegateeV2[delegator]
-         : address(0);
-   }
-@@ -330,16 +330,12 @@
-   ) internal pure returns (DelegationAwareBalance memory) {
-     if (willDelegate) {
-       // Because GovernancePowerType starts from 0, we should add 1 first, then we apply bitwise OR
--      userState.delegationState = DelegationState(
--        uint8(userState.delegationState) | (uint8(delegationType) + 1)
--      );
-+      userState.delegationState = userState.delegationState | (uint8(delegationType) + 1);
-     } else {
-       // First bitwise NEGATION, ie was 01, after XOR with 11 will be 10,
-       // then bitwise AND, which means it will keep only another delegation type if it exists
--      userState.delegationState = DelegationState(
--        uint8(userState.delegationState) &
--          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED))
--      );
-+      userState.delegationState = userState.delegationState &
-+          ((uint8(delegationType) + 1) ^ uint8(DelegationState.FULL_POWER_DELEGATED));
-     }
-     return userState;
-   }
-diff -ruN src/BaseAaveToken.sol src/BaseAaveToken.sol
---- src/BaseAaveToken.sol	2023-03-29 13:12:02
-+++ src/BaseAaveToken.sol	2023-03-29 13:07:15
-@@ -18,7 +18,7 @@
-     uint104 balance;
-     uint72 delegatedPropositionBalance;
-     uint72 delegatedVotingBalance;
--    DelegationState delegationState;
-+    uint8 delegationState; // refactored from enum
-   }
- 
-   mapping(address => DelegationAwareBalance) internal _balances;

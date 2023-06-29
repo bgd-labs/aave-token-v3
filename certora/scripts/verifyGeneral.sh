@@ -5,10 +5,12 @@ fi
 
 certoraRun certora/harness/AaveTokenV3HarnessStorage.sol:AaveTokenV3Harness \
     --verify AaveTokenV3Harness:certora/specs/general.spec \
+    --packages openzeppelin-contracts=lib/openzeppelin-contracts \
     $RULE \
     --solc solc8.13 \
     --optimistic_loop \
-    --settings -smt_bitVectorTheory=true \
+    --send_only \
+    --prover_args "-smt_bitVectorTheory true" \
     --cloud \
     --msg "AaveTokenV3:general.spec $1"
 
