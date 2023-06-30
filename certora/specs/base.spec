@@ -12,50 +12,50 @@
 */ 
 
 methods {
-    totalSupply()                         returns (uint256)   envfree
-    balanceOf(address)                    returns (uint256)   envfree
-    allowance(address,address)            returns (uint256)   envfree
-    increaseAllowance(address, uint256)
-    decreaseAllowance(address, uint256)
-    transfer(address,uint256)
-    transferFrom(address,address,uint256)
-    permit(address,address,uint256,uint256,uint8,bytes32,bytes32)
+    function totalSupply()                         external returns (uint256)   envfree;
+    function balanceOf(address)                    external returns (uint256)   envfree;
+    function allowance(address,address)            external returns (uint256)   envfree;
+    function increaseAllowance(address, uint256) external;
+    function decreaseAllowance(address, uint256) external;
+    function transfer(address,uint256) external;
+    function transferFrom(address,address,uint256) external;
+    function permit(address,address,uint256,uint256,uint8,bytes32,bytes32) external;
 
-    delegate(address delegatee)
-    metaDelegate(address,address,uint256,uint8,bytes32,bytes32)
-    metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32)
-    getPowerCurrent(address user, uint8 delegationType) returns (uint256) envfree
+    function delegate(address delegatee) external;
+    function metaDelegate(address,address,uint256,uint8,bytes32,bytes32) external;
+    function metaDelegateByType(address,address,uint8,uint256,uint8,bytes32,bytes32) external;
+    function getPowerCurrent(address, IGovernancePowerDelegationToken.GovernancePowerType) external returns (uint256) envfree;
 
-    getBalance(address user) returns (uint104) envfree
-    getDelegatedPropositionBalance(address user) returns (uint72) envfree
-    getDelegatedVotingBalance(address user) returns (uint72) envfree
-    getDelegatingProposition(address user) returns (bool) envfree
-    getDelegatingVoting(address user) returns (bool) envfree
-    getVotingDelegate(address user) returns (address) envfree
-    getPropositionDelegate(address user) returns (address) envfree
-    getDelegationState(address user) returns (uint8) envfree
+    function getBalance(address user) external returns (uint104) envfree;
+    function getDelegatedPropositionBalance(address user) external returns (uint72) envfree;
+    function getDelegatedVotingBalance(address user) external returns (uint72) envfree;
+    function getDelegatingProposition(address user) external returns (bool) envfree;
+    function getDelegatingVoting(address user) external returns (bool) envfree;
+    function getVotingDelegate(address user) external returns (address) envfree;
+    function getPropositionDelegate(address user) external returns (address) envfree;
+    function getDelegationMode(address user) external returns (AaveTokenV3Harness.DelegationMode) envfree;
 }
 
-definition VOTING_POWER() returns uint8 = 0;
-definition PROPOSITION_POWER() returns uint8 = 1;
+definition VOTING_POWER() returns IGovernancePowerDelegationToken.GovernancePowerType = IGovernancePowerDelegationToken.GovernancePowerType.VOTING;
+definition PROPOSITION_POWER() returns IGovernancePowerDelegationToken.GovernancePowerType = IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION;
 definition DELEGATED_POWER_DIVIDER() returns uint256 = 10^10;
 
 /**
 
-    Definitions of delegation states
+    Definitions of delegation modes
 
 */
-definition NO_DELEGATION() returns uint8 = 0;
-definition VOTING_DELEGATED() returns uint8 = 1;
-definition PROPOSITION_DELEGATED() returns uint8 = 2;
-definition FULL_POWER_DELEGATED() returns uint8 = 3;
-definition DELEGATING_VOTING(uint8 state) returns bool = 
-    state == VOTING_DELEGATED() || state == FULL_POWER_DELEGATED();
-definition DELEGATING_PROPOSITION(uint8 state) returns bool =
-    state == PROPOSITION_DELEGATED() || state == FULL_POWER_DELEGATED();
+definition NO_DELEGATION() returns AaveTokenV3Harness.DelegationMode = AaveTokenV3Harness.DelegationMode.NO_DELEGATION;
+definition VOTING_DELEGATED() returns AaveTokenV3Harness.DelegationMode = AaveTokenV3Harness.DelegationMode.VOTING_DELEGATED;
+definition PROPOSITION_DELEGATED() returns AaveTokenV3Harness.DelegationMode = AaveTokenV3Harness.DelegationMode.PROPOSITION_DELEGATED;
+definition FULL_POWER_DELEGATED() returns AaveTokenV3Harness.DelegationMode = AaveTokenV3Harness.DelegationMode.FULL_POWER_DELEGATED;
+definition DELEGATING_VOTING(AaveTokenV3Harness.DelegationMode mode) returns bool = 
+    mode == VOTING_DELEGATED() || mode == FULL_POWER_DELEGATED();
+definition DELEGATING_PROPOSITION(AaveTokenV3Harness.DelegationMode mode) returns bool =
+    mode == PROPOSITION_DELEGATED() || mode == FULL_POWER_DELEGATED();
 
 definition AAVE_MAX_SUPPLY() returns uint256 = 16000000 * 10^18;
-definition SCALED_MAX_SUPPLY() returns uint256 = AAVE_MAX_SUPPLY() / DELEGATED_POWER_DIVIDER();
+definition SCALED_MAX_SUPPLY() returns mathint = AAVE_MAX_SUPPLY() / DELEGATED_POWER_DIVIDER();
 
 
 /**
@@ -64,12 +64,16 @@ definition SCALED_MAX_SUPPLY() returns uint256 = AAVE_MAX_SUPPLY() / DELEGATED_P
 
 */
 
-function normalize(uint256 amount) returns uint256 {
-    return to_uint256(amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER());
+function normalize(uint256 amount) returns mathint {
+    return amount / DELEGATED_POWER_DIVIDER() * DELEGATED_POWER_DIVIDER();
 }
 
-function validDelegationState(address user) returns bool {
-    return getDelegationState(user) < 4;
+function validDelegationMode(address user) returns bool {
+    AaveTokenV3Harness.DelegationMode state = getDelegationMode(user);
+    return state == AaveTokenV3Harness.DelegationMode.NO_DELEGATION ||
+        state == AaveTokenV3Harness.DelegationMode.VOTING_DELEGATED ||
+        state == AaveTokenV3Harness.DelegationMode.PROPOSITION_DELEGATED ||
+        state == AaveTokenV3Harness.DelegationMode.FULL_POWER_DELEGATED;
 }
 
 function validAmount(uint256 amt) returns bool {

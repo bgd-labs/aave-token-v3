@@ -1,5 +1,5 @@
 /*
-    This is a specification file for the verification of AaveTokenV3.sol
+    This is a specification file for the verification of AaveTokenV3.sol 
     smart contract using the Certora prover. The rules in this spec have been
     contributed by the community. Individual attribution is given in the comments
     to each rule.
@@ -13,14 +13,14 @@
 
 */
 
-import "base.spec"
+import "base.spec";
 
 methods {
-    ecrecoverWrapper(bytes32 digest, uint8 v, bytes32 r, bytes32 s) returns (address) envfree
-    computeMetaDelegateHash(address delegator,  address delegatee, uint256 deadline, uint256 nonce) returns (bytes32) envfree
-    computeMetaDelegateByTypeHash(address delegator,  address delegatee, uint8 delegationType, uint256 deadline, uint256 nonce) returns (bytes32) envfree
-    _nonces(address addr) returns (uint256) envfree
-    getNonce(address addr) returns (uint256) envfree
+    function ecrecoverWrapper(bytes32, uint8, bytes32, bytes32) external returns (address) envfree;
+    function computeMetaDelegateHash(address delegator,  address delegatee, uint256 deadline, uint256 nonce) external returns (bytes32) envfree;
+    function computeMetaDelegateByTypeHash(address delegator,  address delegatee, IGovernancePowerDelegationToken.GovernancePowerType delegationType, uint256 deadline, uint256 nonce) external returns (bytes32) envfree;
+    function _nonces(address addr) external returns (uint256) envfree;
+    function getNonce(address) external returns (uint256) envfree;
 }
 
 definition ZERO_ADDRESS() returns address = 0;
@@ -92,7 +92,7 @@ rule permitIntegrity() {
     @Link:
 */
 invariant addressZeroNoPower()
-  getPowerCurrent(0, VOTING_POWER()) == 0 && getPowerCurrent(0, PROPOSITION_POWER()) == 0 && balanceOf(0) == 0
+  getPowerCurrent(0, VOTING_POWER()) == 0 && getPowerCurrent(0, PROPOSITION_POWER()) == 0 && balanceOf(0) == 0;
 
 
 /*
@@ -117,7 +117,7 @@ invariant addressZeroNoPower()
 
     @Link:
 */
-rule metaDelegateByTypeOnlyCallableWithProperlySignedArguments(env e, address delegator, address delegatee, uint8 delegationType, uint256 deadline, uint8 v, bytes32 r, bytes32 s) {
+rule metaDelegateByTypeOnlyCallableWithProperlySignedArguments(env e, address delegator, address delegatee, IGovernancePowerDelegationToken.GovernancePowerType delegationType, uint256 deadline, uint8 v, bytes32 r, bytes32 s) {
     require ecrecoverWrapper(computeMetaDelegateByTypeHash(delegator, delegatee, delegationType, deadline, _nonces(delegator)), v, r, s) != delegator;
     metaDelegateByType@withrevert(e, delegator, delegatee, delegationType, deadline, v, r, s);
     assert lastReverted;
@@ -151,7 +151,7 @@ rule metaDelegateByTypeOnlyCallableWithProperlySignedArguments(env e, address de
 rule metaDelegateNonRepeatable(env e1, env e2, address delegator, address delegatee, uint256 deadline, uint8 v, bytes32 r, bytes32 s) {
     uint256 nonce = _nonces(delegator);
     bytes32 hash1 = computeMetaDelegateHash(delegator, delegatee, deadline, nonce);
-    bytes32 hash2 = computeMetaDelegateHash(delegator, delegatee, deadline, nonce+1);
+    bytes32 hash2 = computeMetaDelegateHash(delegator, delegatee, deadline, require_uint256(nonce+1));
     // assume no hash collisions
     require hash1 != hash2;
     // assume first call is properly signed
@@ -189,7 +189,7 @@ rule metaDelegateNonRepeatable(env e1, env e2, address delegator, address delega
 */
 rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, address bob) {
 
-    require e.msg.sender != ZERO_ADDRESS();
+    require e.msg.sender != ZERO_ADDRESS(); 
     require e.msg.sender != alice && e.msg.sender != bob;
     require alice != ZERO_ADDRESS() && bob != ZERO_ADDRESS();
 
@@ -224,12 +224,12 @@ rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, a
     {
        powerAfter = getPowerCurrent(alice, type)
        powerAfter != powerBefore =>
-        f.selector == delegate(address).selector ||
-        f.selector == delegateByType(address, uint8).selector ||
-        f.selector == metaDelegate(address, address, uint256, uint8, bytes32, bytes32).selector ||
-        f.selector == metaDelegateByType(address, address, uint8, uint256, uint8, bytes32, bytes32).selector ||
-        f.selector == transfer(address, uint256).selector ||
-        f.selector == transferFrom(address, address, uint256).selector
+        f.selector == sig:delegate(address).selector ||
+        f.selector == sig:delegateByType(address, uint8).selector ||
+        f.selector == sig:metaDelegate(address, address, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == sig:metaDelegateByType(address, address, uint8, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == sig:transfer(address, uint256).selector ||
+        f.selector == sig:transferFrom(address, address, uint256).selector
     }
 
     @Note:
@@ -242,8 +242,7 @@ rule powerChanges(address alice, method f) {
     env e;
     calldataarg args;
 
-    uint8 type;
-    require type <= 1;
+    IGovernancePowerDelegationToken.GovernancePowerType type;
     uint256 powerBefore = getPowerCurrent(alice, type);
 
     f(e, args);
@@ -251,12 +250,12 @@ rule powerChanges(address alice, method f) {
     uint256 powerAfter = getPowerCurrent(alice, type);
 
     assert powerBefore != powerAfter =>
-        f.selector == delegate(address).selector ||
-        f.selector == delegateByType(address, uint8).selector ||
-        f.selector == metaDelegate(address, address, uint256, uint8, bytes32, bytes32).selector ||
-        f.selector == metaDelegateByType(address, address, uint8, uint256, uint8, bytes32, bytes32).selector ||
-        f.selector == transfer(address, uint256).selector ||
-        f.selector == transferFrom(address, address, uint256).selector;
+        f.selector == sig:delegate(address).selector ||
+        f.selector == sig:delegateByType(address, IGovernancePowerDelegationToken.GovernancePowerType).selector ||
+        f.selector == sig:metaDelegate(address, address, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == sig:metaDelegateByType(address, address, IGovernancePowerDelegationToken.GovernancePowerType, uint256, uint8, bytes32, bytes32).selector ||
+        f.selector == sig:transfer(address, uint256).selector ||
+        f.selector == sig:transferFrom(address, address, uint256).selector;
 }
 
 
@@ -287,14 +286,14 @@ rule powerChanges(address alice, method f) {
 rule delegateIndependence(method f) {
     env e;
 
-    uint8 type;
-    require type <= 1;
+    IGovernancePowerDelegationToken.GovernancePowerType type;
 
-    address delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
+    address delegateBefore = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
 
-    delegateByType(e, _, 1 - type);
+    IGovernancePowerDelegationToken.GovernancePowerType otherType = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? IGovernancePowerDelegationToken.GovernancePowerType.VOTING : IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION;
+    delegateByType(e, _, otherType);
 
-    address delegateAfter = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
+    address delegateAfter = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
 
     assert delegateBefore == delegateAfter;
 }
@@ -321,11 +320,11 @@ rule delegateIndependence(method f) {
         isVotingDelegatorAfter = getDelegatingVoting(a);
         isVotingDelegateeAfter = getDelegatedVotingBalance(a) != 0
 
-        votingPowerBefore < votingPowerAfter <=>
+        votingPowerBefore < votingPowerAfter <=> 
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0))
         &&
-        votingPowerBefore > votingPowerAfter <=>
+        votingPowerBefore > votingPowerAfter <=> 
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0))
     }
@@ -355,12 +354,12 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
 
     require !isVotingDelegateeBefore && !isVotingDelegateeAfter;
 
-    /*
+    /* 
     If you're not a delegatee, your voting power only increases when
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
     */
-    assert votingPowerBefore < votingPowerAfter <=>
+    assert votingPowerBefore < votingPowerAfter <=> 
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore != 0));
 
@@ -369,7 +368,7 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
     */
-    assert votingPowerBefore > votingPowerAfter <=>
+    assert votingPowerBefore > votingPowerAfter <=> 
         (!isVotingDelegatorBefore && !isVotingDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isVotingDelegatorBefore && isVotingDelegatorAfter && (balanceBefore != 0));
 }
@@ -396,11 +395,11 @@ rule votingPowerChangesWhileNotBeingADelegatee(address a) {
         isPropositionDelegatorAfter = getDelegatingProposition(a);
         isPropositionDelegateeAfter = getDelegatedPropositionBalance(a) != 0
 
-        propositionPowerBefore < propositionPowerAfter <=>
+        propositionPowerBefore < propositionPowerAfter <=> 
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0))
         &&
-        propositionPowerBefore > propositionPowerAfter <=>
+        propositionPowerBefore > propositionPowerAfter <=> 
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore > balanceAfter)) ||
         (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0))
     }
@@ -435,16 +434,16 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         1. You're not delegating and your balance increases
         2. You're delegating and stop delegating and your balanceBefore != 0
     */
-    assert propositionPowerBefore < propositionPowerAfter <=>
+    assert propositionPowerBefore < propositionPowerAfter <=> 
         (!isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore < balanceAfter)) ||
         (isPropositionDelegatorBefore && !isPropositionDelegatorAfter && (balanceBefore != 0));
-
+    
     /*
     If you're not a delegatee, your proposition power only decreases when
         1. You're not delegating and your balance decreases
         2. You're not delegating and start delegating and your balanceBefore != 0
     */
-    assert propositionPowerBefore > propositionPowerAfter <=>
+    assert propositionPowerBefore > propositionPowerAfter <=> 
         (!isPropositionDelegatorBefore && !isPropositionDelegatorBefore && (balanceBefore > balanceAfter)) ||
         (!isPropositionDelegatorBefore && isPropositionDelegatorAfter && (balanceBefore != 0));
 }
@@ -463,11 +462,11 @@ rule propositionPowerChangesWhileNotBeingADelegatee(address a) {
         f(e, args)
     >
     {
-       allowance(owner, spender) != allowanceBefore =>f.selector==approve(address,uint256).selector
-            || f.selector==increaseAllowance(address,uint256).selector
-            || f.selector==decreaseAllowance(address,uint256).selector
-            || f.selector==transferFrom(address,address,uint256).selector
-            || f.selector==permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector
+       allowance(owner, spender) != allowanceBefore =>f.selector==sig:approve(address,uint256).selector 
+            || f.selector==sig:increaseAllowance(address,uint256).selector
+            || f.selector==sig:decreaseAllowance(address,uint256).selector
+            || f.selector==sig:transferFrom(address,address,uint256).selector
+            || f.selector==sig:permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector
 
     }
 
@@ -486,9 +485,9 @@ rule allowanceStateChange(env e){
     f(e, args);
     uint256 allowanceAfter=allowance(owner,user);
 
-    assert allowanceBefore!=allowanceAfter => f.selector==approve(address,uint256).selector
-    || f.selector==increaseAllowance(address,uint256).selector
-    || f.selector==decreaseAllowance(address,uint256).selector
-    || f.selector==transferFrom(address,address,uint256).selector
-    || f.selector==permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector;
+    assert allowanceBefore!=allowanceAfter => f.selector==sig:approve(address,uint256).selector 
+    || f.selector==sig:increaseAllowance(address,uint256).selector
+    || f.selector==sig:decreaseAllowance(address,uint256).selector
+    || f.selector==sig:transferFrom(address,address,uint256).selector
+    || f.selector==sig:permit(address,address,uint256,uint256,uint8,bytes32,bytes32).selector;
 }

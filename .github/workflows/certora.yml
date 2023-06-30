@@ -16,11 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Check key
-        env:
-          CERTORAKEY: ${{ secrets.CERTORAKEY }}
-        run: echo "key length" ${#CERTORAKEY}
+        with:
+          submodules: recursive
 
       - name: Install python
         uses: actions/setup-python@v2
@@ -31,7 +28,7 @@ jobs:
         with: { java-version: "11", java-package: jre }
 
       - name: Install certora cli
-        run: pip install certora-cli
+        run: pip3 install certora-cli-beta
 
       - name: Install solc
         run: |
@@ -46,7 +43,7 @@ jobs:
           make munged
           cd ..
           echo "key length" ${#CERTORAKEY}
-          sh certora/scripts/${{ matrix.rule }}
+          certoraRun certora/conf/${{ matrix.rule }}
         env:
           CERTORAKEY: ${{ secrets.CERTORAKEY }}
 
@@ -55,6 +52,8 @@ jobs:
       max-parallel: 16
       matrix:
         rule:
-          - verifyGeneral.sh
-          - verifyDelegate.sh
-          - verifyCommunity.sh
+          - general.conf
+          - delegate.conf
+          - community.conf
+          - erc20.conf
+    
