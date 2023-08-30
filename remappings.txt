@@ -2,3 +2,6 @@ aave-token-v2/=lib/aave-token-v2/contracts/
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
+aave-helpers/=lib/aave-helpers/src
+solidity-utils/=lib/solidity-utils/src/
+aave-address-book/=lib/aave-address-book/src/
