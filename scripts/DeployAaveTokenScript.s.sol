@@ -2,12 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {AaveTokenV3} from '../src/AaveTokenV3.sol';
+import {EthereumScript} from 'aave-helpers/ScriptUtils.sol';
 
-abstract contract AaveTokenScript {
-  function _deploy() internal returns (address) {
+contract DeployAaveToken is EthereumScript {
+  function run() external broadcast {
     AaveTokenV3 aaveToken = new AaveTokenV3();
     aaveToken.initialize();
-
-    return address(aaveToken);
   }
 }
