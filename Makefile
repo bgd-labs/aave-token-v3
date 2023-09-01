@@ -26,5 +26,6 @@ storage-diff :
 	forge inspect src/AaveTokenV3.sol:AaveTokenV3 storage-layout --pretty > reports/AaveTokenV3_layout.md
 	make git-diff before=reports/AaveTokenV2_layout.md after=reports/AaveTokenV3_layout.md out=AaveToken_v2_v3_layout_diff
 
+deploy-aave-token-mock :; forge script scripts/DeployAaveV3Mock.s.sol:DeployAaveV3Mock --rpc-url mainnet --broadcast --private-key ${PRIVATE_KEY} --verify -vvvv
 deploy-aave-token :; forge script scripts/DeployAaveTokenScript.s.sol:DeployAaveToken --rpc-url mainnet --broadcast --ledger --mnemonic-indexes ${MNEMONIC_INDEX} --sender ${LEDGER_SENDER} --verify -vvvv
 deploy-payload :; forge script scripts/UpdateAaveTokenPayloadScript.s.sol:DeployUpdateAaveTokenPayload --rpc-url mainnet --broadcast --ledger --mnemonic-indexes ${MNEMONIC_INDEX} --sender ${LEDGER_SENDER} --verify -vvvv

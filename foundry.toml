@@ -1,10 +1,13 @@
 [profile.default]
 src = 'src'
 out = 'out'
+script = 'scripts'
 libs = ['lib']
 remappings = [
     'openzeppelin-contracts/=lib/openzeppelin-contracts/'
 ]
+
+solc = "0.8.19"
 
 fs_permissions = [{access = "write", path = "./reports"}]
 
