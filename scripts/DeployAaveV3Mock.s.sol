@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 import 'forge-std/console.sol';
 import 'forge-std/Script.sol';
 import {TransparentUpgradeableProxy} from 'solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol';
@@ -35,8 +36,8 @@ contract DeployAaveV3Mock is Script {
     AaveTokenV3 aaveTokenImpl = new AaveTokenV3Mock();
     aaveTokenImpl.initialize();
 
-    TransparentProxyFactory proxyFactory = new TransparentProxyFactory();
-    address proxyAdmin = proxyFactory.createProxyAdmin(msg.sender);
+    TransparentProxyFactory proxyFactory = 0x98C977c66266366dbEc8E4Ca049A0e1Db7D26428;//new TransparentProxyFactory();
+    address proxyAdmin = 0x48a93f60B3F3f741d864Fdaf6E85A5634e71d1D8;//proxyFactory.createProxyAdmin(msg.sender);
 
     address aaveToken = proxyFactory
       .createDeterministic(
@@ -48,9 +49,9 @@ contract DeployAaveV3Mock is Script {
       keccak256('Aave token salt')
     );
 
+    vm.stopBroadcast();
     console.log('aave token', aaveToken);
     console.log('proxyAdmin', proxyAdmin);
     console.log('proxyFactory', address(proxyFactory));
-    vm.stopBroadcast();
   }
 }
