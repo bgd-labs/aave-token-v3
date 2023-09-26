@@ -1,6 +1,6 @@
-# $AAVE V3
+# $AAVE token v3
 
-Next iteration of the AAVE token, optimized for its usage on the upcoming new iteration of the Aave Governance.
+Next iteration of the AAVE token, optimized for its usage as voting asset on Aave Governance v3.
 
 More detailed description and specification [HERE](./properties.md)
 
@@ -13,4 +13,9 @@ After having installed Foundry:
 2. `make test` to run the simulation tests.
 
 ## Copyright
-2022 BGD Labs
+
+Copyright © 2023, Aave DAO, represented by its governance smart contracts.
+
+Created by [BGD Labs](https://bgdlabs.com/).
+
+[MIT license](./LICENSE)
