@@ -1,5 +1,9 @@
 # $AAVE token v3
 
+<p align="center">
+<img src="./aave-token-v3.png" width="300">
+</p>
+
 Next iteration of the AAVE token, optimized for its usage as voting asset on Aave Governance v3.
 
 More detailed description and specification [HERE](./properties.md)

@@ -4,6 +4,7 @@ out/
 node_modules
 package-lock.json
 .env
+.DS_Store
 
 # Certora
 .certora_config/
