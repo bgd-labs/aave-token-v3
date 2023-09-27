@@ -4,9 +4,13 @@
 <img src="./aave-token-v3.png" width="300">
 </p>
 
+<br>
+
 Next iteration of the AAVE token, optimized for its usage as voting asset on Aave Governance v3.
 
 More detailed description and specification [HERE](./properties.md)
+
+<br>
 
 ## Setup
 
@@ -15,6 +19,19 @@ This repository requires having Foundry installed in the running machine. Instru
 After having installed Foundry:
 1. Add a `.env` file with properly configured `ETH_RPC_URL` and `FORK_BLOCK`, following the example on `.env.example` 
 2. `make test` to run the simulation tests.
+
+<br>
+
+## Security
+
+- Internal testing and review by the BGD Labs team, but in terms of logic and upgradeability considerations.
+    - [Test suite](./src/test/).
+    - [Storage layout diffs](./diffs/)
+- Security review and properties checking (formal verification) by [Certora](https://www.certora.com/), service provider of the Aave DAO.
+    - [Properties](./certora/README.md)
+    - [Reports](./certora/report/Formal%20Verification%20Report%20of%20AAVE%20Token%20V3.md)
+
+<br>
 
 ## Copyright
 
