@@ -29,7 +29,7 @@ After having installed Foundry:
     - [Storage layout diffs](./diffs/)
 - Security review and properties checking (formal verification) by [Certora](https://www.certora.com/), service provider of the Aave DAO.
     - [Properties](./certora/README.md)
-    - [Reports](./certora/report/Formal%20Verification%20Report%20of%20AAVE%20Token%20V3.md)
+    - [Reports](./certora/reports/Formal_Verification_Report_AAVE_Token_V3.pdf)
 
 <br>
 
