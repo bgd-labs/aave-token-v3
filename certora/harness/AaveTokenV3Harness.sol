@@ -8,8 +8,8 @@
 
 pragma solidity ^0.8.0;
 
-import {AaveTokenV3} from '../../src/AaveTokenV3.sol';
-import {DelegationMode} from '../../src/DelegationAwareBalance.sol';
+import {AaveTokenV3} from '../munged/src/AaveTokenV3.sol';
+import {DelegationMode} from '../munged/src/DelegationAwareBalance.sol';
 
 contract AaveTokenV3Harness is AaveTokenV3 {
   // returns user's token balance, used in some community rules
@@ -42,17 +42,25 @@ contract AaveTokenV3Harness is AaveTokenV3 {
   }
 
   // returns user's voting delegate
-  function getVotingDelegate(address user) public view returns (address) {
-    return _votingDelegatee[user];
+  function getVotingDelegatee(address user) public view returns (address) {
+      //return _getDelegateeByType(user, _getDelegationState(user), GovernancePowerType.VOTING);
+      return _votingDelegatee[user];
   }
 
   // returns user's proposition delegate
-  function getPropositionDelegate(address user) public view returns (address) {
+  function getPropositionDelegatee(address user) public view returns (address) {
     return _propositionDelegatee[user];
   }
 
   // returns user's delegation state
   function getDelegationMode(address user) public view returns (DelegationMode) {
     return _balances[user].delegationMode;
+  }
+
+  function getDelegatedPowerVoting(address user) public view returns (uint256) {
+      DelegationState memory userState = _getDelegationState(user);
+      uint256 userDelegatedPower = _getDelegatedPowerByType(userState, GovernancePowerType.VOTING);
+      
+      return userDelegatedPower;
   }
 }
