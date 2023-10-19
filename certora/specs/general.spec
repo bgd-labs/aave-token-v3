@@ -144,9 +144,9 @@ hook Sstore _balances[KEY address user].balance uint104 balance (uint104 old_bal
 
 */
 invariant delegateCorrectness(address user)
-    ((getVotingDelegate(user) == user || getVotingDelegate(user) == 0) <=> !getDelegatingVoting(user))
+    ((getVotingDelegatee(user) == user || getVotingDelegatee(user) == 0) <=> !getDelegatingVoting(user))
     &&
-    ((getPropositionDelegate(user) == user || getPropositionDelegate(user) == 0) <=> !getDelegatingProposition(user));
+    ((getPropositionDelegatee(user) == user || getPropositionDelegatee(user) == 0) <=> !getDelegatingProposition(user));
 
 /*
     @Rule

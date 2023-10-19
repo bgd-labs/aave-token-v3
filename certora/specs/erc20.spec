@@ -133,18 +133,18 @@ rule transferCorrect(address to, uint256 amount) {
     require fromBalanceBefore + toBalanceBefore < AAVE_MAX_SUPPLY() / 100;
     
     // proven elsewhere
-    address v_delegateTo = getVotingDelegate(to);
+    address v_delegateTo = getVotingDelegatee(to);
     mathint dvbTo = getDelegatedVotingBalance(v_delegateTo);
     require dvbTo >= balanceOf(to) / DELEGATED_POWER_DIVIDER() && 
         dvbTo < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
-    address p_delegateTo = getPropositionDelegate(to);
+    address p_delegateTo = getPropositionDelegatee(to);
     mathint pvbTo = getDelegatedPropositionBalance(p_delegateTo);
     require pvbTo >= balanceOf(to) / DELEGATED_POWER_DIVIDER() && 
         pvbTo < SCALED_MAX_SUPPLY() - amount / DELEGATED_POWER_DIVIDER();
 
     // proven elsewhere
-    address v_delegateFrom = getVotingDelegate(e.msg.sender);
-    address p_delegateFrom = getPropositionDelegate(e.msg.sender);
+    address v_delegateFrom = getVotingDelegatee(e.msg.sender);
+    address p_delegateFrom = getPropositionDelegatee(e.msg.sender);
     mathint dvbFrom = getDelegatedVotingBalance(v_delegateFrom);
     mathint pvbFrom = getDelegatedPropositionBalance(p_delegateFrom);
     require dvbFrom >= balanceOf(e.msg.sender) / DELEGATED_POWER_DIVIDER();

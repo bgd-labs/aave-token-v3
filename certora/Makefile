@@ -14,6 +14,8 @@ help:
 munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
 	rm -rf $@
 	mkdir $@
+	cp -r ../lib $@
+	cp -r ../src $@
 	patch -p0 -d $@ < $(PATCH)
 
 record:

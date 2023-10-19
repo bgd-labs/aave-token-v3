@@ -193,17 +193,17 @@ rule delegatingToAnotherUserRemovesPowerFromOldDelegatee(env e, address alice, a
     require e.msg.sender != alice && e.msg.sender != bob;
     require alice != ZERO_ADDRESS() && bob != ZERO_ADDRESS();
 
-    require getVotingDelegate(e.msg.sender) != alice;
+    require getVotingDelegatee(e.msg.sender) != alice;
 
     uint72 _votingBalance = getDelegatedVotingBalance(alice);
 
     delegateByType(e, alice, VOTING_POWER());
 
-    assert getVotingDelegate(e.msg.sender) == alice;
+    assert getVotingDelegatee(e.msg.sender) == alice;
 
     delegateByType(e, bob, VOTING_POWER());
 
-    assert getVotingDelegate(e.msg.sender) == bob;
+    assert getVotingDelegatee(e.msg.sender) == bob;
     uint72 votingBalance_ = getDelegatedVotingBalance(alice);
     assert alice != bob => votingBalance_ == _votingBalance;
 }
@@ -268,13 +268,13 @@ rule powerChanges(address alice, method f) {
 
     @Formula:
     {
-        delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
+        delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegatee(e.msg.sender)
     }
     <
         delegateByType(e, delegatee, 1 - type)
     >
     {
-       delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender)
+       delegateBefore = type == 1 ? getPropositionDelegate(e.msg.sender) : getVotingDelegatee(e.msg.sender)
        delegateBefore == delegateAfter
     }
 
@@ -288,12 +288,12 @@ rule delegateIndependence(method f) {
 
     IGovernancePowerDelegationToken.GovernancePowerType type;
 
-    address delegateBefore = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
+    address delegateBefore = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegatee(e.msg.sender) : getVotingDelegatee(e.msg.sender);
 
     IGovernancePowerDelegationToken.GovernancePowerType otherType = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? IGovernancePowerDelegationToken.GovernancePowerType.VOTING : IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION;
     delegateByType(e, _, otherType);
 
-    address delegateAfter = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegate(e.msg.sender) : getVotingDelegate(e.msg.sender);
+    address delegateAfter = type == IGovernancePowerDelegationToken.GovernancePowerType.PROPOSITION ? getPropositionDelegatee(e.msg.sender) : getVotingDelegatee(e.msg.sender);
 
     assert delegateBefore == delegateAfter;
 }

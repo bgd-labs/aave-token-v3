@@ -37,11 +37,11 @@ contract AaveTokenV3Harness is AaveTokenV3 {
       _balances[user].delegationMode == DelegationMode.FULL_POWER_DELEGATED;
   }
 
-  function getVotingDelegate(address user) public view returns (address) {
+  function getVotingDelegatee(address user) public view returns (address) {
     return _votingDelegatee[user];
   }
 
-  function getPropositionDelegate(address user) public view returns (address) {
+  function getPropositionDelegatee(address user) public view returns (address) {
     return _propositionDelegatee[user];
   }
 
